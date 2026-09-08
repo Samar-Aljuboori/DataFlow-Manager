@@ -1,7 +1,7 @@
-id,name,department,salary,age
-1,Alice,IT,70000,28
-2,Bob,HR,50000,34
-3,Charlie,IT,80000,
-4,David,Finance,,45
-5,Eve,HR,52000,29
-2,Bob,HR,50000,34
+Name,Age,Department,Salary,City
+Alice,28,IT,70000,Stuttgart
+Bob,34,HR,50000,Berlin
+Charlie,,IT,80000,Munich
+David,45,Finance,,Frankfurt
+Eve,29,HR,52000,Stuttgart
+Bob,34,HR,50000,Berlin
