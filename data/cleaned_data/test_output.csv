@@ -1,0 +1,7 @@
+Name,Age,Department,Salary,City
+Alice,28.0,IT,70000.0,Stuttgart
+Bob,34.0,HR,50000.0,Berlin
+Charlie,,IT,80000.0,Munich
+David,45.0,Finance,,Frankfurt
+Eve,29.0,HR,52000.0,Stuttgart
+Bob,34.0,HR,50000.0,Berlin
