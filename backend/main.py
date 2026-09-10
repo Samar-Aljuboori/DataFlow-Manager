@@ -27,12 +27,6 @@ def run_pipeline(input_path, output_path):
     print("Pipeline Execution Completed Successfully!")
     print("==========================================")
 
-if __name__ == "__main__":
-    # Define input and output paths relative to the backend directory
-    input_file = "../data/sample_data.csv"
-    output_file = "../data/cleaned_data/sample_data_cleaned.csv"
-
-    run_pipeline(input_file, output_file)
 
     if __name__ == "__main__":
      # Define input and output paths relative to the backend directory
