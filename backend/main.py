@@ -1,36 +1,51 @@
+from fastapi import FastAPI
 from file_manager import load_csv, save_csv
 from analyzer import analyze_dataset
-from cleaner import clean_data
+from cleaner import clean_data, rename_columns, remove_columns
 
-def run_pipeline(input_path, output_path):
-    print("==========================================")
-    print("Starting DataFlow Manager Pipeline...")
-    print("==========================================")
+# Initialize FastAPI Application
+app = FastAPI(
+    title="DataFlow Manager API",
+    description="REST API layer for DataFlow Manager Core Engine",
+    version="1.0.0"
+)
 
-    # 1. Load Data
-    print("\n[Step 1/4] Loading Dataset...")
-    df_raw = load_csv(input_path)
+# Root Endpoint
+@app.get("/")
+def read_root():
+    return {
+        "status": "online",
+        "message": "DataFlow Manager API is running successfully!"
+    }
 
-    # 2. Analyze Data
-    print("\n[Step 2/4] Analyzing Raw Dataset...")
-    analyze_dataset(input_path)
+# Execute Full Pipeline Endpoint
+@app.post("/pipeline/run")
+def run_pipeline_api(input_path: str = "../data/sample_data.csv", output_path: str = "../data/cleaned_data/cleaned_data.csv"):
+    """
+    Execute the complete data processing pipeline:
+    1. Load Raw CSV
+    2. Analyze Dataset
+    3. Clean Data
+    4. Export Cleaned CSV
+    """
+    try:
+        # 1. Load Data
+        df_raw = load_csv(input_path)
 
-    # 3. Clean Data
-    print("\n[Step 3/4] Cleaning Dataset...")
-    df_cleaned = clean_data(input_path)
+        # 2. Clean Data
+        df_cleaned = clean_data(input_path)
 
-    # 4. Save/Export Data
-    print("\n[Step 4/4] Exporting Cleaned Dataset...")
-    save_csv(df_cleaned, output_path)
+        # 3. Save/Export Data
+        save_csv(df_cleaned, output_path)
 
-    print("\n==========================================")
-    print("Pipeline Execution Completed Successfully!")
-    print("==========================================")
-
-
-    if __name__ == "__main__":
-     # Define input and output paths relative to the backend directory
-     input_file = "../data/sample_data.csv"
-     output_file = "../data/cleaned_data/cleaned_data.csv"
-
-     run_pipeline(input_file, output_file)
+        return {
+            "status": "success",
+            "message": "Pipeline execution completed successfully!",
+            "input_path": input_path,
+            "output_path": output_path
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Pipeline execution failed: {str(e)}"
+        }
