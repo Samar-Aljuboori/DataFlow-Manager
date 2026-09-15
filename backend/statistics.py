@@ -1,6 +1,6 @@
 import pandas as pd
 
-def _get_numeric_series(df, column_name):    # private func.   /  helper func.
+def _get_numeric_series(df, column_name):    #  _get_numeric_series :(_get)private func.   /  helper func.
     """Internal helper to validate DataFrame and column type."""
     if df is None or df.empty:
         raise ValueError("Error: Provided DataFrame is empty or invalid.")

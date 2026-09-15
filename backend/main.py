@@ -255,3 +255,32 @@ def fill_missing(filename: str = "sample_data.csv", value: str = "N/A"):
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to fill missing values: {str(e)}"}
+
+
+# Statistics API Endpoint 
+
+@app.get("/statistics")
+def get_statistics(filename: str = "sample_data.csv"):
+    """
+    Get summary statistics (mean, median, std, min, max, count) for numeric columns.
+    """
+    try:
+        file_path = DATA_DIR / filename
+        if not file_path.exists():
+            return {"status": "error", "message": f"File '{filename}' not found."}
+
+        df = load_csv(str(file_path))
+
+        # Calculate summary statistics for numeric columns
+        stats_df = df.describe()
+
+        # Convert to dictionary format compatible with JSON
+        stats_dict = stats_df.to_dict()
+
+        return {
+            "status": "success",
+            "filename": filename,
+            "statistics": stats_dict
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to compute statistics: {str(e)}"}
