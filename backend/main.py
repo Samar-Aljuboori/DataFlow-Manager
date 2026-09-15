@@ -90,3 +90,39 @@ def run_pipeline_api(filename: str = "sample_data.csv"):
             "status": "error",
             "message": f"Pipeline execution failed: {str(e)}"
         }
+
+# Preview Dataset Endpoint (Stage 24)
+@app.get("/preview")
+def preview_dataset(filename: str = "sample_data.csv", rows: int = 10):
+    """
+    Get the first N rows of a dataset for quick preview.
+    """
+    try:
+        file_path = DATA_DIR / filename
+
+        # 1. Check if file exists
+        if not file_path.exists():
+            return {
+                "status": "error",
+                "message": f"File '{filename}' not found. Please upload it first."
+            }
+
+        # 2. Load dataset and slice first N rows
+        df = load_csv(str(file_path))
+        df_preview = df.head(rows)
+
+        # 3. Convert DataFrame to dict (JSON friendly format)
+        preview_data = df_preview.to_dict(orient="records")
+
+        return {
+            "status": "success",
+            "filename": filename,
+            "preview_rows": len(preview_data),
+            "columns": list(df.columns),
+            "data": preview_data
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to generate preview: {str(e)}"
+        }
