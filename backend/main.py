@@ -284,3 +284,34 @@ def get_statistics(filename: str = "sample_data.csv"):
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to compute statistics: {str(e)}"}
+
+
+# Search API Endpoint (Universal Search)
+
+@app.get("/search")
+def search_data(query: str, filename: str = "sample_data.csv"):
+    """
+    Search for a query string across ALL columns (strings, numbers, dates) in the dataset.
+    """
+    try:
+        file_path = DATA_DIR / filename
+        if not file_path.exists():
+            return {"status": "error", "message": f"File '{filename}' not found."}
+
+        df = load_csv(str(file_path))
+
+        # Create a boolean mask for rows matching the query in ANY column (converted to string)
+        mask = False
+        for col in df.columns:
+            mask = mask | df[col].astype(str).str.contains(query, case=False, na=False)
+
+        results_df = df[mask]
+
+        return {
+            "status": "success",
+            "query": query,
+            "results_count": len(results_df),
+            "data": results_df.to_dict(orient="records")
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to execute search: {str(e)}"}
