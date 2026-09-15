@@ -167,3 +167,91 @@ def get_dataset_analysis(filename: str = "sample_data.csv"):
             "status": "error",
             "message": f"Failed to perform analysis: {str(e)}"
         }
+
+
+# Clean API Endpoints
+
+@app.post("/clean/remove-duplicates")
+def remove_duplicates(filename: str = "sample_data.csv"):
+    """
+    Remove all duplicate rows from the dataset and save the updated file.
+    """
+    try:
+        file_path = DATA_DIR / filename
+        if not file_path.exists():
+            return {"status": "error", "message": f"File '{filename}' not found."}
+
+        df = load_csv(str(file_path))
+        initial_rows = len(df)
+
+        # Drop duplicates
+        df_cleaned = df.drop_duplicates()
+        removed_count = initial_rows - len(df_cleaned)
+
+        # Save cleaned data back to CSV
+        df_cleaned.to_csv(file_path, index=False)
+
+        return {
+            "status": "success",
+            "message": f"Removed {removed_count} duplicate rows.",
+            "remaining_rows": len(df_cleaned)
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to remove duplicates: {str(e)}"}
+
+
+@app.post("/clean/remove-missing")
+def remove_missing(filename: str = "sample_data.csv"):
+    """
+    Remove rows that contain missing values (NaN) from the dataset.
+    """
+    try:
+        file_path = DATA_DIR / filename
+        if not file_path.exists():
+            return {"status": "error", "message": f"File '{filename}' not found."}
+
+        df = load_csv(str(file_path))
+        initial_rows = len(df)
+
+        # Drop missing values
+        df_cleaned = df.dropna()
+        removed_count = initial_rows - len(df_cleaned)
+
+        # Save cleaned data back to CSV
+        df_cleaned.to_csv(file_path, index=False)
+
+        return {
+            "status": "success",
+            "message": f"Removed {removed_count} rows with missing values.",
+            "remaining_rows": len(df_cleaned)
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to remove missing values: {str(e)}"}
+
+
+@app.post("/clean/fill-missing")
+def fill_missing(filename: str = "sample_data.csv", value: str = "N/A"):
+    """
+    Fill missing values (NaN) in the dataset with a specified fallback value.
+    """
+    try:
+        file_path = DATA_DIR / filename
+        if not file_path.exists():
+            return {"status": "error", "message": f"File '{filename}' not found."}
+
+        df = load_csv(str(file_path))
+        missing_before = int(df.isnull().sum().sum())
+
+        # Fill missing values
+        df_cleaned = df.fillna(value)
+
+        # Save cleaned data back to CSV
+        df_cleaned.to_csv(file_path, index=False)
+
+        return {
+            "status": "success",
+            "message": f"Filled {missing_before} missing values with '{value}'.",
+            "fill_value": value
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to fill missing values: {str(e)}"}
