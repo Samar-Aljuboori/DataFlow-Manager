@@ -126,3 +126,44 @@ def preview_dataset(filename: str = "sample_data.csv", rows: int = 10):
             "status": "error",
             "message": f"Failed to generate preview: {str(e)}"
         }
+
+# Analysis Endpoint 
+@app.get("/analysis")
+def get_dataset_analysis(filename: str = "sample_data.csv"):
+    """
+    Get detailed structural analysis of a dataset:
+    - Number of rows and columns
+    - Data types per column
+    - Missing values count per column
+    - Total duplicate rows
+    """
+    try:
+        file_path = DATA_DIR / filename
+
+        if not file_path.exists():
+            return {
+                "status": "error",
+                "message": f"File '{filename}' not found. Please upload it first."
+            }
+
+        df = load_csv(str(file_path))
+
+        # Perform Analysis
+        data_types = {col: str(dtype) for col, dtype in df.dtypes.items()}
+        missing_values = df.isnull().sum().to_dict()
+        duplicate_count = int(df.duplicated().sum())
+
+        return {
+            "status": "success",
+            "filename": filename,
+            "rows": len(df),
+            "columns": len(df.columns),
+            "data_types": data_types,
+            "missing_values": missing_values,
+            "duplicates": duplicate_count
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Failed to perform analysis: {str(e)}"
+        }
