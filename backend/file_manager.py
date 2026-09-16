@@ -34,7 +34,7 @@ def save_csv(df, output_path):
 
 
 # ==========================================
-# Excel Support Functions (Stage 13)
+# Excel Support Functions
 # ==========================================
 
 def load_excel(file_path, sheet_name=0):

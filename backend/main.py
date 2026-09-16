@@ -1,38 +1,45 @@
 import shutil
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File
+
+# Import core engine modules with exact signatures
 from file_manager import load_csv, save_csv
-from analyzer import analyze_dataset
 from cleaner import clean_data, rename_columns, remove_columns
+from search import search_data
+from filter import filter_by_column, filter_numeric_range
+from statistics import get_mean, get_median, get_min, get_max, get_count
 
 # Initialize FastAPI Application
 app = FastAPI(
     title="DataFlow Manager API",
-    description="REST API layer for DataFlow Manager Core Engine",
+    description="Backend API layer for DataFlow Manager Engine",
     version="1.0.0"
 )
 
-# Define Data Directories
-DATA_DIR = Path("../data")
-CLEANED_DIR = Path("../data/cleaned_data")
+# Base directory setup relative to project structure
+BASE_DIR = Path(__file__).resolve().parent.parent
+DATA_DIR = BASE_DIR / "data"
+CLEANED_DIR = DATA_DIR / "cleaned_data"
 
+# Ensure data directories exist
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 CLEANED_DIR.mkdir(parents=True, exist_ok=True)
 
-# Root Endpoint
+
+# Root Health Check Endpoint
 @app.get("/")
 def read_root():
+    """Health check endpoint to verify API availability."""
     return {
         "status": "online",
-        "message": "DataFlow Manager API is running successfully!"
+        "message": "Welcome to DataFlow Manager"
     }
 
-# File Upload Endpoint (Stage 23)
+
+# File Upload Endpoint
 @app.post("/upload")
 def upload_file(file: UploadFile = File(...)):
-    """
-    Upload a CSV dataset to the backend server.
-    """
+    """Upload CSV datasets to the data directory."""
     try:
         file_path = DATA_DIR / file.filename
 
@@ -43,269 +50,161 @@ def upload_file(file: UploadFile = File(...)):
             "status": "success",
             "filename": file.filename,
             "saved_path": str(file_path),
-            "message": "File uploaded successfully! You can now pass this path to /pipeline/run"
+            "message": "File uploaded successfully!"
         }
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Failed to upload file: {str(e)}"
-        }
+        return {"status": "error", "message": f"Failed to upload file: {str(e)}"}
 
-# Dynamic Pipeline Execution Endpoint
+
+# Dataset Preview Endpoint
+@app.get("/preview")
+def preview_dataset(filename: str = "sample_data.csv", rows: int = 10):
+    """Preview the first N rows of a dataset."""
+    try:
+        file_path = DATA_DIR / filename
+        df = load_csv(str(file_path))
+        df_preview = df.head(rows)
+
+        return {
+            "status": "success",
+            "filename": filename,
+            "preview_rows": len(df_preview),
+            "columns": list(df.columns),
+            "data": df_preview.to_dict(orient="records")
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to preview data: {str(e)}"}
+
+
+# Dataset Overview & Structure Endpoint
+@app.get("/analysis")
+def get_dataset_analysis(filename: str = "sample_data.csv"):
+    """Retrieve statistical summary, shape, missing values, and duplicates."""
+    try:
+        file_path = DATA_DIR / filename
+        df = load_csv(str(file_path))
+
+        return {
+            "status": "success",
+            "filename": filename,
+            "analysis": {
+                "rows": len(df),
+                "columns": len(df.columns),
+                "column_names": list(df.columns),
+                "data_types": {col: str(dtype) for col, dtype in df.dtypes.items()},
+                "missing_values": df.isnull().sum().to_dict(),
+                "duplicate_rows": int(df.duplicated().sum())
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to perform analysis: {str(e)}"}
+
+
+# Full Automated Data Cleaning Pipeline Endpoint
 @app.post("/pipeline/run")
 def run_pipeline_api(filename: str = "sample_data.csv"):
-    """
-    Execute the complete data processing pipeline on any uploaded dataset:
-    1. Resolve File Paths Dynamically
-    2. Load Raw CSV
-    3. Analyze & Clean Dataset
-    4. Export Cleaned Dataset
-    """
+    """Execute the complete data cleaning pipeline and export result."""
     try:
         input_path = DATA_DIR / filename
         output_path = CLEANED_DIR / f"cleaned_{filename}"
 
-        # 1. Check if file exists
-        if not input_path.exists():
-            return {
-                "status": "error",
-                "message": f"File '{filename}' not found in data directory. Please upload it first via /upload"
-            }
-
-        # 2. Load & Clean Data
-        df_raw = load_csv(str(input_path))
         df_cleaned = clean_data(str(input_path))
-
-        # 3. Save Cleaned Output
         save_csv(df_cleaned, str(output_path))
 
         return {
             "status": "success",
             "message": "Pipeline execution completed successfully!",
-            "input_file": filename,
             "cleaned_file_path": str(output_path)
         }
     except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Pipeline execution failed: {str(e)}"
-        }
-
-# Preview Dataset Endpoint (Stage 24)
-@app.get("/preview")
-def preview_dataset(filename: str = "sample_data.csv", rows: int = 10):
-    """
-    Get the first N rows of a dataset for quick preview.
-    """
-    try:
-        file_path = DATA_DIR / filename
-
-        # 1. Check if file exists
-        if not file_path.exists():
-            return {
-                "status": "error",
-                "message": f"File '{filename}' not found. Please upload it first."
-            }
-
-        # 2. Load dataset and slice first N rows
-        df = load_csv(str(file_path))
-        df_preview = df.head(rows)
-
-        # 3. Convert DataFrame to dict (JSON friendly format)
-        preview_data = df_preview.to_dict(orient="records")
-
-        return {
-            "status": "success",
-            "filename": filename,
-            "preview_rows": len(preview_data),
-            "columns": list(df.columns),
-            "data": preview_data
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Failed to generate preview: {str(e)}"
-        }
-
-# Analysis Endpoint 
-@app.get("/analysis")
-def get_dataset_analysis(filename: str = "sample_data.csv"):
-    """
-    Get detailed structural analysis of a dataset:
-    - Number of rows and columns
-    - Data types per column
-    - Missing values count per column
-    - Total duplicate rows
-    """
-    try:
-        file_path = DATA_DIR / filename
-
-        if not file_path.exists():
-            return {
-                "status": "error",
-                "message": f"File '{filename}' not found. Please upload it first."
-            }
-
-        df = load_csv(str(file_path))
-
-        # Perform Analysis
-        data_types = {col: str(dtype) for col, dtype in df.dtypes.items()}
-        missing_values = df.isnull().sum().to_dict()
-        duplicate_count = int(df.duplicated().sum())
-
-        return {
-            "status": "success",
-            "filename": filename,
-            "rows": len(df),
-            "columns": len(df.columns),
-            "data_types": data_types,
-            "missing_values": missing_values,
-            "duplicates": duplicate_count
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Failed to perform analysis: {str(e)}"
-        }
+        return {"status": "error", "message": f"Pipeline execution failed: {str(e)}"}
 
 
-# Clean API Endpoints
-
+# Remove Duplicates Endpoint
 @app.post("/clean/remove-duplicates")
-def remove_duplicates(filename: str = "sample_data.csv"):
-    """
-    Remove all duplicate rows from the dataset and save the updated file.
-    """
+def remove_duplicates_endpoint(filename: str = "sample_data.csv"):
+    """Drop duplicate rows from the dataset."""
     try:
         file_path = DATA_DIR / filename
-        if not file_path.exists():
-            return {"status": "error", "message": f"File '{filename}' not found."}
-
         df = load_csv(str(file_path))
-        initial_rows = len(df)
 
-        # Drop duplicates
         df_cleaned = df.drop_duplicates()
-        removed_count = initial_rows - len(df_cleaned)
-
-        # Save cleaned data back to CSV
-        df_cleaned.to_csv(file_path, index=False)
+        save_csv(df_cleaned, str(file_path))
 
         return {
             "status": "success",
-            "message": f"Removed {removed_count} duplicate rows.",
-            "remaining_rows": len(df_cleaned)
+            "message": "Duplicate rows removed successfully."
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to remove duplicates: {str(e)}"}
 
 
-@app.post("/clean/remove-missing")
-def remove_missing(filename: str = "sample_data.csv"):
-    """
-    Remove rows that contain missing values (NaN) from the dataset.
-    """
-    try:
-        file_path = DATA_DIR / filename
-        if not file_path.exists():
-            return {"status": "error", "message": f"File '{filename}' not found."}
-
-        df = load_csv(str(file_path))
-        initial_rows = len(df)
-
-        # Drop missing values
-        df_cleaned = df.dropna()
-        removed_count = initial_rows - len(df_cleaned)
-
-        # Save cleaned data back to CSV
-        df_cleaned.to_csv(file_path, index=False)
-
-        return {
-            "status": "success",
-            "message": f"Removed {removed_count} rows with missing values.",
-            "remaining_rows": len(df_cleaned)
-        }
-    except Exception as e:
-        return {"status": "error", "message": f"Failed to remove missing values: {str(e)}"}
-
-
+# Fill Missing Values Endpoint
 @app.post("/clean/fill-missing")
-def fill_missing(filename: str = "sample_data.csv", value: str = "N/A"):
-    """
-    Fill missing values (NaN) in the dataset with a specified fallback value.
-    """
+def fill_missing_endpoint(fill_value: str = "Unknown", filename: str = "sample_data.csv"):
+    """Fill missing or NaN values across dataset columns."""
     try:
         file_path = DATA_DIR / filename
-        if not file_path.exists():
-            return {"status": "error", "message": f"File '{filename}' not found."}
-
         df = load_csv(str(file_path))
-        missing_before = int(df.isnull().sum().sum())
 
-        # Fill missing values
-        df_cleaned = df.fillna(value)
-
-        # Save cleaned data back to CSV
-        df_cleaned.to_csv(file_path, index=False)
+        df_cleaned = df.fillna(fill_value)
+        save_csv(df_cleaned, str(file_path))
 
         return {
             "status": "success",
-            "message": f"Filled {missing_before} missing values with '{value}'.",
-            "fill_value": value
+            "message": f"Missing values filled with '{fill_value}' successfully."
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to fill missing values: {str(e)}"}
 
 
-# Statistics API Endpoint 
-
-@app.get("/statistics")
-def get_statistics(filename: str = "sample_data.csv"):
-    """
-    Get summary statistics (mean, median, std, min, max, count) for numeric columns.
-    """
+# Rename Column Endpoint
+@app.post("/clean/rename-column")
+def rename_column_endpoint(old_name: str, new_name: str, filename: str = "sample_data.csv"):
+    """Rename a specific column in the dataset."""
     try:
         file_path = DATA_DIR / filename
-        if not file_path.exists():
-            return {"status": "error", "message": f"File '{filename}' not found."}
-
         df = load_csv(str(file_path))
 
-        # Calculate summary statistics for numeric columns
-        stats_df = df.describe()
-
-        # Convert to dictionary format compatible with JSON
-        stats_dict = stats_df.to_dict()
+        df_updated = rename_columns(df, {old_name: new_name})
+        save_csv(df_updated, str(file_path))
 
         return {
             "status": "success",
-            "filename": filename,
-            "statistics": stats_dict
+            "message": f"Renamed column '{old_name}' to '{new_name}' successfully."
         }
     except Exception as e:
-        return {"status": "error", "message": f"Failed to compute statistics: {str(e)}"}
+        return {"status": "error", "message": f"Failed to rename column: {str(e)}"}
 
 
-# Search API Endpoint (Universal Search)
-
-@app.get("/search")
-def search_data(query: str, filename: str = "sample_data.csv"):
-    """
-    Search for a query string across ALL columns (strings, numbers, dates) in the dataset.
-    """
+# Remove Column Endpoint
+@app.post("/clean/remove-column")
+def remove_column_endpoint(column_name: str, filename: str = "sample_data.csv"):
+    """Remove a target column from the dataset."""
     try:
         file_path = DATA_DIR / filename
-        if not file_path.exists():
-            return {"status": "error", "message": f"File '{filename}' not found."}
-
         df = load_csv(str(file_path))
 
-        # Create a boolean mask for rows matching the query in ANY column (converted to string)
-        mask = False
-        for col in df.columns:
-            mask = mask | df[col].astype(str).str.contains(query, case=False, na=False)
+        df_updated = remove_columns(df, [column_name])
+        save_csv(df_updated, str(file_path))
 
-        results_df = df[mask]
+        return {
+            "status": "success",
+            "message": f"Removed column '{column_name}' successfully."
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to remove column: {str(e)}"}
+
+
+# Search Dataset Endpoint
+@app.get("/search")
+def search_endpoint(query: str, case_sensitive: bool = False, filename: str = "sample_data.csv"):
+    """Search for matching records across all columns in dataset."""
+    try:
+        file_path = DATA_DIR / filename
+        df = load_csv(str(file_path))
+
+        results_df = search_data(df, query=query, case_sensitive=case_sensitive)
 
         return {
             "status": "success",
@@ -314,4 +213,64 @@ def search_data(query: str, filename: str = "sample_data.csv"):
             "data": results_df.to_dict(orient="records")
         }
     except Exception as e:
-        return {"status": "error", "message": f"Failed to execute search: {str(e)}"}
+        return {"status": "error", "message": f"Failed to search: {str(e)}"}
+
+
+# Filter Dataset Endpoint
+@app.get("/filter")
+def filter_endpoint(
+    column: str,
+    value: str = None,
+    min_val: float = None,
+    max_val: float = None,
+    case_sensitive: bool = False,
+    filename: str = "sample_data.csv"
+):
+    """Filter records by specific column value or numeric range."""
+    try:
+        file_path = DATA_DIR / filename
+        df = load_csv(str(file_path))
+
+        if min_val is not None or max_val is not None:
+            filtered_df = filter_numeric_range(df, column_name=column, min_val=min_val, max_val=max_val)
+        else:
+            filtered_df = filter_by_column(df, column_name=column, value=value, case_sensitive=case_sensitive)
+
+        return {
+            "status": "success",
+            "column": column,
+            "results_count": len(filtered_df),
+            "data": filtered_df.to_dict(orient="records")
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to filter data: {str(e)}"}
+
+
+# Calculate Column / Dataset Statistics Endpoint
+@app.get("/statistics")
+def get_statistics(column: str = None, filename: str = "sample_data.csv"):
+    """Compute summary statistics for a column or the full dataset."""
+    try:
+        file_path = DATA_DIR / filename
+        df = load_csv(str(file_path))
+
+        if column:
+            return {
+                "status": "success",
+                "column": column,
+                "statistics": {
+                    "mean": get_mean(df, column),
+                    "median": get_median(df, column),
+                    "min": get_min(df, column),
+                    "max": get_max(df, column),
+                    "count": get_count(df, column)
+                }
+            }
+
+        return {
+            "status": "success",
+            "filename": filename,
+            "statistics": df.describe(include="all").fillna("N/A").to_dict()
+        }
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to calculate statistics: {str(e)}"}
