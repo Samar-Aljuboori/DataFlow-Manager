@@ -1,5 +1,4 @@
-from file_manager import load_csv
-
+from backend.app.services.file_service import load_csv
 def clean_data(file_path):
     try:
         # Load data safely using load_csv

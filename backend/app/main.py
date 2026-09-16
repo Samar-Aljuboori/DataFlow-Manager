@@ -4,13 +4,13 @@ from fastapi import FastAPI, UploadFile, File
 
 
 # Import core engine modules with exact signatures
-from cleaner import clean_data, rename_columns, remove_columns
-from search import search_data
-from filter import filter_by_column, filter_numeric_range
-from statistics import get_mean, get_median, get_min, get_max, get_count
+from backend.app.services.cleaner import clean_data, rename_columns, remove_columns
+from backend.app.services.search import search_data
+from backend.app.services.filter import filter_by_column, filter_numeric_range
+from backend.app.services.statistics import get_mean, get_median, get_min, get_max, get_count
 
 # Import file handling utilities including Excel saver
-from file_manager import load_csv, save_csv, load_excel, save_excel
+from backend.app.services.file_service import load_csv, save_csv, load_excel, save_excel
 
 # Import HTTP exceptions and specialized file response handlers for file export/download endpoints
 from fastapi import HTTPException  # For HTTP error handling (e.g. 404)
