@@ -2,12 +2,19 @@ import shutil
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File
 
+
 # Import core engine modules with exact signatures
-from file_manager import load_csv, save_csv
 from cleaner import clean_data, rename_columns, remove_columns
 from search import search_data
 from filter import filter_by_column, filter_numeric_range
 from statistics import get_mean, get_median, get_min, get_max, get_count
+
+# Import file handling utilities including Excel saver
+from file_manager import load_csv, save_csv, load_excel, save_excel
+
+# Import HTTP exceptions and specialized file response handlers for file export/download endpoints
+from fastapi import HTTPException  # For HTTP error handling (e.g. 404)
+from fastapi.responses import FileResponse  # For file streaming and downloads (not as JSON File )
 
 # Initialize FastAPI Application
 app = FastAPI(
@@ -274,3 +281,41 @@ def get_statistics(column: str = None, filename: str = "sample_data.csv"):
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to calculate statistics: {str(e)}"}
+
+# Export CSV Endpoint
+@app.get("/export/csv")
+def export_csv(filename: str = "sample_data.csv"):
+    """Export and download dataset directly as a CSV file."""
+    file_path = DATA_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(
+        path=str(file_path),
+        filename=filename,
+        media_type="text/csv"
+    )
+
+
+# Export Excel Endpoint
+@app.get("/export/excel")
+def export_excel(filename: str = "sample_data.csv"):
+    """Convert CSV dataset to Excel format (.xlsx) and download."""
+    file_path = DATA_DIR / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    try:
+        df = load_csv(str(file_path))
+        excel_filename = file_path.stem + ".xlsx"
+        excel_path = CLEANED_DIR / excel_filename
+
+        save_excel(df, str(excel_path))
+
+        return FileResponse(
+            path=str(excel_path),
+            filename=excel_filename,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to export Excel file: {str(e)}")
