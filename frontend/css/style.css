@@ -64,3 +64,46 @@ body {
     margin-top: 15px;
     font-size: 0.95rem;
 }
+
+
+/* Preview UI Styling */
+.preview-container {
+    margin-top: 30px;
+    width: 100%;
+}
+
+.preview-title {
+    font-size: 1.2rem;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.table-wrapper {
+    overflow-x: auto; /* Enable horizontal scrolling for wide tables */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+#previewTable {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #ffffff;
+    font-size: 0.95rem;
+}
+
+#previewTable th, #previewTable td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+#previewTable th {
+    background-color: #3498db;
+    color: #ffffff;
+    font-weight: 600;
+}
+
+#previewTable tr:hover {
+    background-color: #f5f6fa; /* Subtle row highlight on hover */
+}
