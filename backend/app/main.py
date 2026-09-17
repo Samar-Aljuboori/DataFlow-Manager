@@ -1,5 +1,6 @@
 from pathlib import Path
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from backend.app.routers import upload, analysis, cleaning, statistics, export
 
 # Initialize FastAPI Application
@@ -7,6 +8,15 @@ app = FastAPI(
     title="DataFlow Manager API",
     description="Backend API layer for DataFlow Manager Engine",
     version="1.0.0"
+)
+
+# Enable CORS middleware to allow cross-origin requests from the frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Base directory setup relative to project structure
@@ -18,13 +28,12 @@ CLEANED_DIR = DATA_DIR / "cleaned_data"
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 CLEANED_DIR.mkdir(parents=True, exist_ok=True)
 
-# Include Routers
+# Include dedicated application routers
 app.include_router(upload.router)
 app.include_router(analysis.router)
 app.include_router(cleaning.router)
 app.include_router(statistics.router)
 app.include_router(export.router)
-
 
 # Root Health Check Endpoint
 @app.get("/")
