@@ -1,37 +1,64 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DataFlow Manager</title>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
     <main class="container">
-        <section class="hero">
-            <h1>DataFlow Manager</h1>
-            <p>Upload, analyze and clean your data easily.</p>
-            
-            <div class="upload-container">
-                <input type="file" id="fileInput" accept=".csv, .xlsx, .xls" style="display: none;">
-                <button id="uploadBtn" class="btn">Upload File</button>
-            </div>
-            
-            <div id="statusMessage" class="status-message"></div>
+      <section class="hero">
+        <h1>DataFlow Manager</h1>
+        <p>Upload, analyze and clean your data easily.</p>
 
-            <!-- Preview UI Section (Added Here) -->
-            <div class="preview-container" id="previewContainer">
-                <h2 class="preview-title">Data Preview</h2>
-                <div class="table-wrapper">
-                    <table id="previewTable">
-                        <thead id="tableHeader"></thead>
-                        <tbody id="tableBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
+        <!-- Upload Section -->
+        <div class="upload-container">
+          <input
+            type="file"
+            id="fileInput"
+            accept=".csv, .xlsx, .xls"
+            style="display: none"
+          />
+          <!-- 🛑 أضفنا type="button" لمنع إرسال أي النموذج تلقائياً -->
+          <button type="button" id="uploadBtn" class="btn">Upload File</button>
+        </div>
+
+        <div id="statusMessage" class="status-message"></div>
+        
+        <!-- Analysis Dashboard Section: Dataset Summary Cards (Rows, Columns, Missing Values, Duplicates) -->
+        <div id="stats-dashboard" class="stats-grid" style="display: none">
+          <div class="stat-card">
+            <h4>Total Rows</h4>
+            <p id="stat-rows">0</p>
+          </div>
+          <div class="stat-card">
+            <h4>Total Columns</h4>
+            <p id="stat-cols">0</p>
+          </div>
+          <div class="stat-card">
+            <h4>Missing Values</h4>
+            <p id="stat-missing">0</p>
+          </div>
+          <div class="stat-card">
+            <h4>Duplicate Rows</h4>
+            <p id="stat-duplicates">0</p>
+          </div>
+        </div>
+
+        <!-- Preview UI Section: Hidden initially, displays when file is successfully uploaded -->
+        <div class="preview-container" id="previewContainer" style="display: none">
+          <h2 class="preview-title">Data Preview</h2>
+          <div class="table-wrapper">
+            <table id="previewTable">
+              <thead id="tableHeader"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
     </main>
 
     <script src="js/app.js"></script>
-</body>
+  </body>
 </html>

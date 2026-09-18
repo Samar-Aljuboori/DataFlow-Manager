@@ -61,6 +61,18 @@ def upload_file(file: UploadFile = File(...)):
 
         else:
             return {"status": "error", "message": "Unsupported file format. Please upload CSV or Excel."}
+        # -------------------------------------------------------------------
+        # Clean dataset: Drop completely empty rows and columns
+        # -------------------------------------------------------------------
+        df = df.dropna(how="all")          # Drop rows where all elements are NaN
+        df = df.dropna(how="all", axis=1)   # Drop columns where all elements are NaN
+
+       # Calculate dataset statistics for Dashboard Cards 
+       #  (df.shape = (Total Rows , Total Columns)
+        total_rows = int(df.shape[0])  # (Total Rows)
+        total_columns = int(df.shape[1]) # (Total Columns)
+        missing_values = int(df.isna().sum().sum())
+        duplicate_rows = int(df.duplicated().sum())
 
         # 3. Comprehensive sanitization for JSON compliance
         # Replace infinity and NaN float types with empty strings
@@ -79,8 +91,13 @@ def upload_file(file: UploadFile = File(...)):
             "saved_path": str(file_path),
             "message": "File uploaded successfully!",
             "columns": sanitized_columns,
+            "stats": {
+                "total_rows": total_rows,
+                "total_columns": total_columns,
+                "missing_values": missing_values,
+                "duplicate_rows": duplicate_rows
+            },
             "data": df_clean.to_dict(orient="records")
         }
-
     except Exception as e:
         return {"status": "error", "message": f"Failed to process file: {str(e)}"}
