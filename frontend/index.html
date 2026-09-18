@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DataFlow Manager</title>
     <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
     <main class="container">
@@ -160,6 +161,17 @@
             <button type="button" id="downloadExcelBtn" class="btn btn-success">
               Download Excel
             </button>
+          </div>
+          <!-- Chart Section  -->
+          <div
+            class="chart-container"
+            id="chartContainer"
+            style="display: none"
+          >
+            <h3 class="chart-title">Data Visualization</h3>
+            <div class="chart-wrapper">
+              <canvas id="dataBarChart"></canvas>
+            </div>
           </div>
 
           <!-- Table Wrapper -->

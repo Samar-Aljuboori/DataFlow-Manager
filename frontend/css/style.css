@@ -337,3 +337,24 @@ select.cleaning-input {
 #downloadExcelBtn:hover {
   background-color: #218838;
 }
+
+/* Chart Container Styling */
+.chart-container {
+  margin-top: 30px;
+  background: #ffffff;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.chart-title {
+  margin-bottom: 15px;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.chart-wrapper {
+  position: relative;
+  height: 350px;
+  width: 100%;
+}

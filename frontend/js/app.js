@@ -8,11 +8,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Global state variable to store current dataset for client-side analysis
   window.currentDataset = [];
+
   // =========================================================================
   // SECTION 2: Helper Functions
   // =========================================================================
 
-  // Helper Function 1: Render Data Preview Table Dynamically & Update Dropdowns
+  // Helper Function 1: Render Data Preview Table Dynamically & Update UI Elements
   function renderPreviewTable(data) {
     const tableHeader = document.getElementById("tableHeader");
     const tableBody = document.getElementById("tableBody");
@@ -52,6 +53,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Populate Filter Dropdown automatically upon rendering table
     populateFilterDropdown(data);
+
+    // Trigger Bar Chart Rendering automatically (Stage 43)
+    if (typeof renderBarChart === "function") {
+      renderBarChart(data);
+    }
   }
 
   // Helper Function 2: Calculate Descriptive Statistics for Selected Column
@@ -286,7 +292,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Event 3: Column-based Specific Filtering 
+  // Event 3: Column-based Specific Filtering
   const filterColumnSelect = document.getElementById("filterColumnSelect");
   const filterValueInput = document.getElementById("filterValueInput");
   const applyFilterBtn = document.getElementById("applyFilterBtn");
@@ -321,58 +327,130 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-});
+  });
+
 // =========================================================================
-  // SECTION 7: Export Functionality (Stage 42)
-  // =========================================================================
-  const downloadCsvBtn = document.getElementById("downloadCsvBtn");
-  const downloadExcelBtn = document.getElementById("downloadExcelBtn");
+// SECTION 7: Export Functionality
+// =========================================================================
+const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+const downloadExcelBtn = document.getElementById("downloadExcelBtn");
 
-  // Helper Function: Convert JSON Array to CSV String & Download
-  function downloadDatasetAsCSV(data, filename = "exported_data.csv") {
-    if (!data || data.length === 0) return;
+// Helper Function: Convert JSON Array to CSV String & Download
+function downloadDatasetAsCSV(data, filename = "exported_data.csv") {
+  if (!data || data.length === 0) return;
 
-    const headers = Object.keys(data[0]);
-    const csvRows = [];
+  const headers = Object.keys(data[0]);
+  const csvRows = [];
 
-    // Add Header Row
-    csvRows.push(headers.join(","));
+  // Add Header Row
+  csvRows.push(headers.join(","));
 
-    // Add Data Rows
-    data.forEach((row) => {
-      const values = headers.map((header) => {
-        const escaped = ("" + (row[header] ?? "")).replace(/"/g, '\\"');
-        return `"${escaped}"`;
-      });
-      csvRows.push(values.join(","));
+  // Add Data Rows
+  data.forEach((row) => {
+    const values = headers.map((header) => {
+      const escaped = ("" + (row[header] ?? "")).replace(/"/g, '\\"');
+      return `"${escaped}"`;
     });
+    csvRows.push(values.join(","));
+  });
 
-    const csvContent = csvRows.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const csvContent = csvRows.join("\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Event Listener: Download CSV
+if (downloadCsvBtn) {
+  downloadCsvBtn.addEventListener("click", () => {
+    if (window.currentDataset && window.currentDataset.length > 0) {
+      downloadDatasetAsCSV(window.currentDataset, "DataFlow_Export.csv");
+    }
+  });
+}
+
+// Event Listener: Download Excel (Triggering backend or XLSX handler)
+if (downloadExcelBtn) {
+  downloadExcelBtn.addEventListener("click", () => {
+    console.log("Download Excel triggered");
+    // Optional: Send request to FastAPI backend endpoint for Excel generation
+  });
+}
+// =========================================================================
+// SECTION 8: Chart.js Bar Chart Visualization
+// =========================================================================
+
+// Global reference for Chart instance to prevent rendering overlaps
+let myChartInstance = null;
+
+/**
+ * Render dynamic Bar Chart based on the current dataset.
+ * Automatically selects the first string column as label and first numeric column as value.
+ * @param {Array<Object>} data - The dataset array of objects.
+ */
+function renderBarChart(data) {
+  if (!data || data.length === 0) return;
+
+  const chartContainer = document.getElementById("chartContainer");
+  const chartCanvas = document.getElementById("dataBarChart");
+  if (!chartCanvas) return;
+
+  const ctx = chartCanvas.getContext("2d");
+  const keys = Object.keys(data[0]);
+
+  // Identify first text column for categories/labels and first numeric column for dataset values
+  const labelKey = keys.find((k) => typeof data[0][k] === "string") || keys[0];
+  const valueKey =
+    keys.find(
+      (k) => typeof data[0][k] === "number" || !isNaN(parseFloat(data[0][k])),
+    ) || keys[1];
+
+  if (!labelKey || !valueKey) return;
+
+  // Extract labels and numerical values
+  const labels = data.map((row) => row[labelKey]);
+  const values = data.map((row) => parseFloat(row[valueKey]) || 0);
+
+  // Destroy previous Chart instance if it exists to avoid visual overlap bug
+  if (myChartInstance) {
+    myChartInstance.destroy();
   }
 
-  // Event Listener: Download CSV
-  if (downloadCsvBtn) {
-    downloadCsvBtn.addEventListener("click", () => {
-      if (window.currentDataset && window.currentDataset.length > 0) {
-        downloadDatasetAsCSV(window.currentDataset, "DataFlow_Export.csv");
-      }
-    });
-  }
+  // Instantiate new Bar Chart
+  myChartInstance = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: `${valueKey} by ${labelKey}`,
+          data: values,
+          backgroundColor: "rgba(54, 162, 235, 0.6)",
+          borderColor: "rgba(54, 162, 235, 1)",
+          borderWidth: 1,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: {
+          beginAtZero: true,
+        },
+      },
+    },
+  });
 
-  // Event Listener: Download Excel (Triggering backend or XLSX handler)
-  if (downloadExcelBtn) {
-    downloadExcelBtn.addEventListener("click", () => {
-      console.log("Download Excel triggered");
-      // Optional: Send request to FastAPI backend endpoint for Excel generation
-    });
+  // Display chart container UI
+  if (chartContainer) {
+    chartContainer.style.display = "block";
   }
+}
