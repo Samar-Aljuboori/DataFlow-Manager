@@ -286,7 +286,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Event 3: Column-based Specific Filtering (Stage 41)
+  // Event 3: Column-based Specific Filtering 
   const filterColumnSelect = document.getElementById("filterColumnSelect");
   const filterValueInput = document.getElementById("filterValueInput");
   const applyFilterBtn = document.getElementById("applyFilterBtn");
@@ -322,3 +322,57 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 });
+// =========================================================================
+  // SECTION 7: Export Functionality (Stage 42)
+  // =========================================================================
+  const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+  const downloadExcelBtn = document.getElementById("downloadExcelBtn");
+
+  // Helper Function: Convert JSON Array to CSV String & Download
+  function downloadDatasetAsCSV(data, filename = "exported_data.csv") {
+    if (!data || data.length === 0) return;
+
+    const headers = Object.keys(data[0]);
+    const csvRows = [];
+
+    // Add Header Row
+    csvRows.push(headers.join(","));
+
+    // Add Data Rows
+    data.forEach((row) => {
+      const values = headers.map((header) => {
+        const escaped = ("" + (row[header] ?? "")).replace(/"/g, '\\"');
+        return `"${escaped}"`;
+      });
+      csvRows.push(values.join(","));
+    });
+
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", filename);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Event Listener: Download CSV
+  if (downloadCsvBtn) {
+    downloadCsvBtn.addEventListener("click", () => {
+      if (window.currentDataset && window.currentDataset.length > 0) {
+        downloadDatasetAsCSV(window.currentDataset, "DataFlow_Export.csv");
+      }
+    });
+  }
+
+  // Event Listener: Download Excel (Triggering backend or XLSX handler)
+  if (downloadExcelBtn) {
+    downloadExcelBtn.addEventListener("click", () => {
+      console.log("Download Excel triggered");
+      // Optional: Send request to FastAPI backend endpoint for Excel generation
+    });
+  }

@@ -77,7 +77,7 @@
             </div>
           </div>
         </div>
-        
+
         <!--  Column Statistics UI -->
         <div
           id="stats-analysis-container"
@@ -115,7 +115,6 @@
             </div>
           </div>
         </div>
-
         <!-- Preview UI Section -->
         <div
           class="preview-container"
@@ -123,31 +122,47 @@
           style="display: none"
         >
           <h2 class="preview-title">Data Preview</h2>
-          <!-- Real-Time Search Bar (Stage 40) -->
+
+          <!-- Real-Time Search Bar -->
           <div class="search-container">
-            <input 
-              type="text" 
-              id="searchInput" 
-              placeholder="Search in table..." 
+            <input
+              type="text"
+              id="searchInput"
+              placeholder="Search in table..."
               class="cleaning-input"
             />
           </div>
 
-          <!-- Filter UI Controls -->
-            <div class="filter-controls">
-              <select id="filterColumnSelect" class="cleaning-input">
-                <option value="">-- Select Column --</option>
-              </select>
-              <input 
-                type="text" 
-                id="filterValueInput" 
-                placeholder="Value (e.g., IT)" 
-                class="cleaning-input"
-              />
-              <button type="button" id="applyFilterBtn" class="btn btn-primary">Filter</button>
-              <button type="button" id="resetFilterBtn" class="btn btn-secondary">Reset</button>
-            </div>
+          <!-- Filter UI Controls  -->
+          <div class="filter-controls">
+            <select id="filterColumnSelect" class="cleaning-input">
+              <option value="">-- Select Column --</option>
+            </select>
+            <input
+              type="text"
+              id="filterValueInput"
+              placeholder="Value (e.g., IT)"
+              class="cleaning-input"
+            />
+            <button type="button" id="applyFilterBtn" class="btn btn-primary">
+              Filter
+            </button>
+            <button type="button" id="resetFilterBtn" class="btn btn-secondary">
+              Reset
+            </button>
           </div>
+
+          <!-- Export UI Controls  -->
+          <div class="export-controls">
+            <button type="button" id="downloadCsvBtn" class="btn btn-secondary">
+              Download CSV
+            </button>
+            <button type="button" id="downloadExcelBtn" class="btn btn-success">
+              Download Excel
+            </button>
+          </div>
+
+          <!-- Table Wrapper -->
           <div class="table-wrapper">
             <table id="previewTable">
               <thead id="tableHeader"></thead>

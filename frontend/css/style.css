@@ -297,3 +297,43 @@ select.cleaning-input {
 #resetFilterBtn:hover {
   background-color: #5a6268;
 }
+
+/* Export Controls Alignment & Spacing */
+.export-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 15px;
+  margin-bottom: 20px; 
+  width: 100%;
+}
+
+#downloadCsvBtn {
+  background-color: #6c757d;
+  color: #ffffff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+#downloadCsvBtn:hover {
+  background-color: #5a6268;
+}
+
+#downloadExcelBtn {
+  background-color: #28a745;
+  color: #ffffff;
+  border: none;
+  padding: 9px 18px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+#downloadExcelBtn:hover {
+  background-color: #218838;
+}
