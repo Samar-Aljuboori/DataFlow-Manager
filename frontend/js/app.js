@@ -1,24 +1,31 @@
 document.addEventListener("DOMContentLoaded", () => {
+  // =========================================================================
+  // SECTION 1: DOM Elements Declaration
+  // =========================================================================
   const uploadBtn = document.getElementById("uploadBtn");
   const fileInput = document.getElementById("fileInput");
   const statusMessage = document.getElementById("statusMessage");
 
-  // Function to generate and render the preview table dynamically from JSON response
+  // Global state variable to store current dataset for client-side analysis
+  window.currentDataset = [];
+  // =========================================================================
+  // SECTION 2: Helper Functions
+  // =========================================================================
+
+  // Helper Function 1: Render Data Preview Table Dynamically & Update Dropdowns
   function renderPreviewTable(data) {
     const tableHeader = document.getElementById("tableHeader");
     const tableBody = document.getElementById("tableBody");
 
-    // Clear and reset previous table headers and body rows to avoid duplicating data on new uploads
     tableHeader.innerHTML = "";
     tableBody.innerHTML = "";
 
-    // Guard clause: Exit early if backend data is missing or array is empty
     if (!data || data.length === 0) return;
 
-    // 1. Extract table column headers dynamically from JSON keys
+    // Extract table column headers dynamically from JSON keys
     const columns = Object.keys(data[0]);
 
-    // 2. Build table header row (<th>)
+    // Build table header row (<th>)
     const headerRow = document.createElement("tr");
     columns.forEach((col) => {
       const th = document.createElement("th");
@@ -27,7 +34,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     tableHeader.appendChild(headerRow);
 
-    // 3. Build table body data rows (<tr> and <td>)
+    // Build table body data rows (<tr> and <td>)
     data.forEach((row) => {
       const tr = document.createElement("tr");
       columns.forEach((col) => {
@@ -38,23 +45,90 @@ document.addEventListener("DOMContentLoaded", () => {
       tableBody.appendChild(tr);
     });
 
-    // Show the preview table container
     const previewContainer = document.getElementById("previewContainer");
     if (previewContainer) {
       previewContainer.style.display = "block";
     }
+
+    // Populate Filter Dropdown automatically upon rendering table
+    populateFilterDropdown(data);
   }
 
-  // Trigger hidden file input click when custom upload button is clicked
+  // Helper Function 2: Calculate Descriptive Statistics for Selected Column
+  function calculateColumnStats(data, selectedColumn) {
+    if (!data || data.length === 0 || !selectedColumn) return;
+
+    // Extract numerical values for the selected column
+    const values = data
+      .map((row) => parseFloat(row[selectedColumn]))
+      .filter((val) => !isNaN(val));
+
+    const meanElem = document.getElementById("stat-mean");
+    const medianElem = document.getElementById("stat-median");
+    const minElem = document.getElementById("stat-min");
+    const maxElem = document.getElementById("stat-max");
+
+    if (values.length === 0) {
+      if (meanElem) meanElem.textContent = "N/A";
+      if (medianElem) medianElem.textContent = "N/A";
+      if (minElem) minElem.textContent = "N/A";
+      if (maxElem) maxElem.textContent = "N/A";
+      return;
+    }
+
+    // Calculate Mean
+    const sum = values.reduce((acc, curr) => acc + curr, 0);
+    const mean = (sum / values.length).toFixed(2);
+
+    // Calculate Median
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const median =
+      sorted.length % 2 !== 0
+        ? sorted[mid].toFixed(2)
+        : ((sorted[mid - 1] + sorted[mid]) / 2).toFixed(2);
+
+    // Calculate Minimum and Maximum
+    const min = Math.min(...values).toFixed(2);
+    const max = Math.max(...values).toFixed(2);
+
+    // Update UI Elements
+    if (meanElem) meanElem.textContent = mean;
+    if (medianElem) medianElem.textContent = median;
+    if (minElem) minElem.textContent = min;
+    if (maxElem) maxElem.textContent = max;
+  }
+
+  // Helper Function 3: Populate Filter Columns Dropdown
+  function populateFilterDropdown(data) {
+    const filterColumnSelect = document.getElementById("filterColumnSelect");
+    if (!filterColumnSelect || !data || data.length === 0) return;
+
+    filterColumnSelect.innerHTML =
+      '<option value="">-- Select Column --</option>';
+    const columns = Object.keys(data[0]);
+
+    columns.forEach((col) => {
+      const option = document.createElement("option");
+      option.value = col;
+      option.textContent = col;
+      filterColumnSelect.appendChild(option);
+    });
+  }
+  // =========================================================================
+  // SECTION 3: Custom Upload Button Event Trigger
+  // =========================================================================
   if (uploadBtn && fileInput) {
     uploadBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      fileInput.value = ""; // Clear input value so selecting the same file triggers 'change' event
+      fileInput.value = "";
       fileInput.click();
     });
   }
 
-  // Handle file selection and dispatch upload request to backend
+  // =========================================================================
+  // SECTION 4: File Selection and Backend Upload Request Handler
+  // =========================================================================
   if (fileInput) {
     fileInput.addEventListener("change", async (e) => {
       e.preventDefault();
@@ -62,18 +136,15 @@ document.addEventListener("DOMContentLoaded", () => {
       const file = e.target.files[0];
       if (!file) return;
 
-      // Display pending upload status message
       if (statusMessage) {
         statusMessage.style.color = "#3498db";
         statusMessage.textContent = `Uploading ${file.name}...`;
       }
 
-      // Prepare multipart form data payload
       const formData = new FormData();
       formData.append("file", file);
 
       try {
-        // Dispatch POST request to FastAPI upload endpoint
         const response = await fetch("http://127.0.0.1:8000/upload", {
           method: "POST",
           body: formData,
@@ -81,14 +152,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const result = await response.json();
 
-        // Handle successful upload response
         if (response.ok && result.status === "success") {
           if (statusMessage) {
             statusMessage.style.color = "#2ecc71";
             statusMessage.textContent = `✅ ${result.message} (${result.filename})`;
           }
 
-          // Update Analysis Dashboard summary cards if stats exist
+          // Save response dataset globally
+          window.currentDataset = result.data || [];
+
+          // Update summary dashboard statistics cards
           if (result.stats) {
             const rowElem = document.getElementById("stat-rows");
             const colElem = document.getElementById("stat-cols");
@@ -100,14 +173,37 @@ document.addEventListener("DOMContentLoaded", () => {
             if (missElem) missElem.textContent = result.stats.missing_values;
             if (dupElem) dupElem.textContent = result.stats.duplicate_rows;
 
-            // Display the hidden summary dashboard section
             const statsDashboard = document.getElementById("stats-dashboard");
-            if (statsDashboard) {
-              statsDashboard.style.display = "grid";
-            }
+            if (statsDashboard) statsDashboard.style.display = "grid";
           }
 
-          // Render data preview table if dataset rows are returned from backend
+          // Display cleaning UI controls section
+          const cleaningControls = document.getElementById("cleaning-controls");
+          if (cleaningControls) cleaningControls.style.display = "block";
+
+          // Populate Column Dropdown Selector dynamically
+          const columnSelect = document.getElementById("columnSelect");
+          const statsAnalysisContainer = document.getElementById(
+            "stats-analysis-container",
+          );
+
+          if (columnSelect && result.columns) {
+            columnSelect.innerHTML =
+              '<option value="">-- Choose a Column --</option>';
+            result.columns.forEach((col) => {
+              if (col && col.trim() !== "" && col.toLowerCase() !== "nan") {
+                const option = document.createElement("option");
+                option.value = col;
+                option.textContent = col;
+                columnSelect.appendChild(option);
+              }
+            });
+          }
+
+          if (statsAnalysisContainer)
+            statsAnalysisContainer.style.display = "block";
+
+          // Render data preview table
           if (result.data) {
             renderPreviewTable(result.data);
           }
@@ -122,7 +218,106 @@ document.addEventListener("DOMContentLoaded", () => {
           statusMessage.style.color = "#e74c3c";
           statusMessage.textContent = `❌ Error connecting to server: ${error.message}`;
         }
-        console.error("Upload error:", error);
+      }
+    });
+  }
+
+  // =========================================================================
+  // SECTION 5: Event Listeners for Data Cleaning Controls
+  // =========================================================================
+  const removeDuplicatesBtn = document.getElementById("removeDuplicatesBtn");
+  const removeMissingBtn = document.getElementById("removeMissingBtn");
+  const fillMissingBtn = document.getElementById("fillMissingBtn");
+
+  if (removeDuplicatesBtn) {
+    removeDuplicatesBtn.addEventListener("click", () => {
+      console.log("Remove Duplicates triggered");
+    });
+  }
+
+  if (removeMissingBtn) {
+    removeMissingBtn.addEventListener("click", () => {
+      console.log("Remove Missing Values triggered");
+    });
+  }
+
+  if (fillMissingBtn) {
+    fillMissingBtn.addEventListener("click", () => {
+      const fillValue = document.getElementById("fillValueInput").value;
+      console.log("Fill Missing Values triggered with value:", fillValue);
+    });
+  }
+
+  // =========================================================================
+  // SECTION 6: Event Listeners for Statistics, Search & Column Filtering
+  // =========================================================================
+
+  // Event 1: Column Selection for Statistical Calculation
+  const columnSelect = document.getElementById("columnSelect");
+  if (columnSelect) {
+    columnSelect.addEventListener("change", (e) => {
+      const selectedColumn = e.target.value;
+      const columnStatsCards = document.getElementById("column-stats-cards");
+
+      if (selectedColumn) {
+        if (columnStatsCards) columnStatsCards.style.display = "grid";
+        calculateColumnStats(window.currentDataset, selectedColumn);
+      } else {
+        if (columnStatsCards) columnStatsCards.style.display = "none";
+      }
+    });
+  }
+
+  // Event 2: Real-time Data Table Filtering Search Bar
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput) {
+    searchInput.addEventListener("input", (e) => {
+      const searchTerm = e.target.value.toLowerCase();
+      const tableRows = document.querySelectorAll("#tableBody tr");
+
+      tableRows.forEach((row) => {
+        const rowText = row.textContent.toLowerCase();
+        if (rowText.includes(searchTerm)) {
+          row.style.display = "";
+        } else {
+          row.style.display = "none";
+        }
+      });
+    });
+  }
+
+  // Event 3: Column-based Specific Filtering (Stage 41)
+  const filterColumnSelect = document.getElementById("filterColumnSelect");
+  const filterValueInput = document.getElementById("filterValueInput");
+  const applyFilterBtn = document.getElementById("applyFilterBtn");
+  const resetFilterBtn = document.getElementById("resetFilterBtn");
+
+  // Apply Filter Logic
+  if (applyFilterBtn) {
+    applyFilterBtn.addEventListener("click", () => {
+      const selectedCol = filterColumnSelect ? filterColumnSelect.value : "";
+      const filterVal = filterValueInput
+        ? filterValueInput.value.trim().toLowerCase()
+        : "";
+
+      if (!selectedCol || !filterVal || !window.currentDataset) return;
+
+      const filteredData = window.currentDataset.filter((row) => {
+        const cellValue = String(row[selectedCol] || "").toLowerCase();
+        return cellValue === filterVal || cellValue.includes(filterVal);
+      });
+
+      renderPreviewTable(filteredData);
+    });
+  }
+
+  // Reset Filter Logic
+  if (resetFilterBtn) {
+    resetFilterBtn.addEventListener("click", () => {
+      if (filterColumnSelect) filterColumnSelect.value = "";
+      if (filterValueInput) filterValueInput.value = "";
+      if (window.currentDataset) {
+        renderPreviewTable(window.currentDataset);
       }
     });
   }

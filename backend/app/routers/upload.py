@@ -13,12 +13,9 @@ DATA_DIR = BASE_DIR / "data"
 
 def find_smart_header(df_raw: pd.DataFrame) -> pd.DataFrame:
     """Dynamically locates the first non-empty header row in any dataset."""
-    # Find the index of the first row that is not completely empty/null
     first_valid_row_idx = df_raw.dropna(how="all").index[0]
     
-    # If the first row contains 'Unnamed' headers, shift header to the first populated row
     if any(str(col).startswith("Unnamed") for col in df_raw.columns):
-        # Extract row as new columns header
         new_header = df_raw.iloc[first_valid_row_idx]
         df_cleaned = df_raw.iloc[first_valid_row_idx + 1:].copy()
         df_cleaned.columns = new_header
@@ -33,7 +30,6 @@ def upload_file(file: UploadFile = File(...)):
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         file_path = DATA_DIR / file.filename
 
-        # Save incoming file payload locally
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
@@ -45,7 +41,6 @@ def upload_file(file: UploadFile = File(...)):
         elif file.filename.endswith((".xls", ".xlsx")):
             excel_file = pd.ExcelFile(file_path)
             
-            # Dynamically select the first non-empty worksheet
             selected_sheet = excel_file.sheet_names[0]
             for sheet in excel_file.sheet_names:
                 temp_df = pd.read_excel(file_path, sheet_name=sheet)
@@ -53,44 +48,48 @@ def upload_file(file: UploadFile = File(...)):
                     selected_sheet = sheet
                     break
 
-            # Read selected sheet raw data
             df_raw = pd.read_excel(file_path, sheet_name=selected_sheet)
-            
-            # Apply dynamic smart header resolution algorithm
             df = find_smart_header(df_raw)
 
         else:
             return {"status": "error", "message": "Unsupported file format. Please upload CSV or Excel."}
+
         # -------------------------------------------------------------------
         # Clean dataset: Drop completely empty rows and columns
         # -------------------------------------------------------------------
-        df = df.dropna(how="all")          # Drop rows where all elements are NaN
-        df = df.dropna(how="all", axis=1)   # Drop columns where all elements are NaN
+        df = df.dropna(how="all")          # Drop empty rows
+        df = df.dropna(how="all", axis=1)   # Drop empty columns
 
-       # Calculate dataset statistics for Dashboard Cards 
-       #  (df.shape = (Total Rows , Total Columns)
-        total_rows = int(df.shape[0])  # (Total Rows)
-        total_columns = int(df.shape[1]) # (Total Columns)
+        # ===================================================================
+        # Clean & Sanitize Column Names (Fix nan / Unnamed columns issue)
+        # ===================================================================
+        # Convert headers to string and strip whitespace
+        df.columns = [str(col).strip() for col in df.columns]
+
+        # Filter out columns that are Unnamed, empty, or literally 'nan'
+        valid_columns = [
+            col for col in df.columns 
+            if col != "" and col.lower() != "nan" and not col.startswith("Unnamed")
+        ]
+        
+        # Keep only valid columns in DataFrame
+        df = df[valid_columns]
+
+        # Calculate dataset statistics for Dashboard Cards
+        total_rows = int(df.shape[0])
+        total_columns = int(df.shape[1])
         missing_values = int(df.isna().sum().sum())
         duplicate_rows = int(df.duplicated().sum())
 
-        # 3. Comprehensive sanitization for JSON compliance
-        # Replace infinity and NaN float types with empty strings
+        # Comprehensive sanitization for JSON preview response
         df_clean = df.head(5).replace([np.nan, np.inf, -np.inf], "").fillna("")
-
-        # Sanitize column headers (convert to string and replace Unnamed labels)
-        sanitized_columns = [
-            "" if str(col).startswith("Unnamed") else str(col)
-            for col in df_clean.columns
-        ]
-        df_clean.columns = sanitized_columns
 
         return {
             "status": "success",
             "filename": file.filename,
             "saved_path": str(file_path),
             "message": "File uploaded successfully!",
-            "columns": sanitized_columns,
+            "columns": valid_columns,  # Pure cleaned column names array
             "stats": {
                 "total_rows": total_rows,
                 "total_columns": total_columns,

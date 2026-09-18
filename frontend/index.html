@@ -20,13 +20,12 @@
             accept=".csv, .xlsx, .xls"
             style="display: none"
           />
-          <!-- 🛑 أضفنا type="button" لمنع إرسال أي النموذج تلقائياً -->
           <button type="button" id="uploadBtn" class="btn">Upload File</button>
         </div>
 
         <div id="statusMessage" class="status-message"></div>
-        
-        <!-- Analysis Dashboard Section: Dataset Summary Cards (Rows, Columns, Missing Values, Duplicates) -->
+
+        <!-- Analysis Dashboard Section: Dataset Summary Cards -->
         <div id="stats-dashboard" class="stats-grid" style="display: none">
           <div class="stat-card">
             <h4>Total Rows</h4>
@@ -46,9 +45,109 @@
           </div>
         </div>
 
-        <!-- Preview UI Section: Hidden initially, displays when file is successfully uploaded -->
-        <div class="preview-container" id="previewContainer" style="display: none">
+        <!--  Data Cleaning UI Controls) -->
+        <div
+          id="cleaning-controls"
+          class="cleaning-container"
+          style="display: none"
+        >
+          <h3>Data Cleaning Options</h3>
+          <div class="cleaning-buttons">
+            <button
+              type="button"
+              id="removeDuplicatesBtn"
+              class="btn btn-warning"
+            >
+              Remove Duplicates
+            </button>
+            <button type="button" id="removeMissingBtn" class="btn btn-danger">
+              Remove Missing Values
+            </button>
+
+            <div class="fill-missing-group">
+              <input
+                type="text"
+                id="fillValueInput"
+                placeholder="Enter fill value..."
+                class="cleaning-input"
+              />
+              <button type="button" id="fillMissingBtn" class="btn btn-success">
+                Fill Missing Values
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <!--  Column Statistics UI -->
+        <div
+          id="stats-analysis-container"
+          class="cleaning-container"
+          style="display: none"
+        >
+          <h3>Column Statistics Analysis</h3>
+          <div class="stats-select-group">
+            <label for="columnSelect">Select Column:</label>
+            <select id="columnSelect" class="cleaning-input">
+              <option value="">-- Choose a Column --</option>
+            </select>
+          </div>
+
+          <div
+            id="column-stats-cards"
+            class="stats-grid"
+            style="display: none; margin-top: 15px"
+          >
+            <div class="stat-card">
+              <h4>Mean</h4>
+              <p id="stat-mean">-</p>
+            </div>
+            <div class="stat-card">
+              <h4>Median</h4>
+              <p id="stat-median">-</p>
+            </div>
+            <div class="stat-card">
+              <h4>Minimum</h4>
+              <p id="stat-min">-</p>
+            </div>
+            <div class="stat-card">
+              <h4>Maximum</h4>
+              <p id="stat-max">-</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Preview UI Section -->
+        <div
+          class="preview-container"
+          id="previewContainer"
+          style="display: none"
+        >
           <h2 class="preview-title">Data Preview</h2>
+          <!-- Real-Time Search Bar (Stage 40) -->
+          <div class="search-container">
+            <input 
+              type="text" 
+              id="searchInput" 
+              placeholder="Search in table..." 
+              class="cleaning-input"
+            />
+          </div>
+
+          <!-- Filter UI Controls -->
+            <div class="filter-controls">
+              <select id="filterColumnSelect" class="cleaning-input">
+                <option value="">-- Select Column --</option>
+              </select>
+              <input 
+                type="text" 
+                id="filterValueInput" 
+                placeholder="Value (e.g., IT)" 
+                class="cleaning-input"
+              />
+              <button type="button" id="applyFilterBtn" class="btn btn-primary">Filter</button>
+              <button type="button" id="resetFilterBtn" class="btn btn-secondary">Reset</button>
+            </div>
+          </div>
           <div class="table-wrapper">
             <table id="previewTable">
               <thead id="tableHeader"></thead>
