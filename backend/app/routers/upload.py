@@ -1,4 +1,6 @@
 import shutil
+import sqlite3
+from datetime import datetime
 import numpy as np
 from pathlib import Path
 from fastapi import APIRouter, UploadFile, File
@@ -8,8 +10,9 @@ from backend.app.services.file_service import load_csv
 
 router = APIRouter(prefix="", tags=["Upload & Preview"])
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
+BASE_DIR = Path(__file__).resolve().parents[3] 
 DATA_DIR = BASE_DIR / "data"
+DB_FILE = BASE_DIR / "dataflow.db"
 
 def find_smart_header(df_raw: pd.DataFrame) -> pd.DataFrame:
     """Dynamically locates the first non-empty header row in any dataset."""
@@ -25,7 +28,7 @@ def find_smart_header(df_raw: pd.DataFrame) -> pd.DataFrame:
 
 @router.post("/upload")
 def upload_file(file: UploadFile = File(...)):
-    """Upload any dataset and dynamically extract headers and preview rows."""
+    """Upload dataset, clean headers, log metadata to SQLite, and return preview."""
     try:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         file_path = DATA_DIR / file.filename
@@ -63,16 +66,13 @@ def upload_file(file: UploadFile = File(...)):
         # ===================================================================
         # Clean & Sanitize Column Names (Fix nan / Unnamed columns issue)
         # ===================================================================
-        # Convert headers to string and strip whitespace
         df.columns = [str(col).strip() for col in df.columns]
 
-        # Filter out columns that are Unnamed, empty, or literally 'nan'
         valid_columns = [
             col for col in df.columns 
             if col != "" and col.lower() != "nan" and not col.startswith("Unnamed")
         ]
         
-        # Keep only valid columns in DataFrame
         df = df[valid_columns]
 
         # Calculate dataset statistics for Dashboard Cards
@@ -84,12 +84,30 @@ def upload_file(file: UploadFile = File(...)):
         # Comprehensive sanitization for JSON preview response
         df_clean = df.head(5).replace([np.nan, np.inf, -np.inf], "").fillna("")
 
+        # -------------------------------------------------------------------
+        # Insert file record into SQLite database (dataflow.db)
+        # -------------------------------------------------------------------
+        try:
+            conn = sqlite3.connect(DB_FILE)
+            cursor = conn.cursor()
+            current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            cursor.execute(
+                "INSERT INTO upload_history (filename, upload_date) VALUES (?, ?)",
+                (file.filename, current_date)
+            )
+            conn.commit()
+            conn.close()
+        except Exception as db_err:
+            print(f"Failed to record upload history: {db_err}")
+        # -------------------------------------------------------------------
+
         return {
             "status": "success",
             "filename": file.filename,
             "saved_path": str(file_path),
             "message": "File uploaded successfully!",
-            "columns": valid_columns,  # Pure cleaned column names array
+            "columns": valid_columns,
             "stats": {
                 "total_rows": total_rows,
                 "total_columns": total_columns,
