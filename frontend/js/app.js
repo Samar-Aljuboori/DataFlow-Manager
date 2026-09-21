@@ -431,6 +431,39 @@ function setupDataCleaningControls() {
   const removeMissingBtn = document.getElementById("removeMissingBtn");
   const fillMissingBtn = document.getElementById("fillMissingBtn");
 
+  // Helper function to update the summary statistic cards dynamically
+  function updateStatsCards(dataset) {
+    if (!dataset) return;
+    
+    const totalRows = dataset.length;
+    const totalCols = dataset.length > 0 ? Object.keys(dataset[0]).length : 0;
+    
+    // Calculate missing values count
+    let missingCount = 0;
+    dataset.forEach(row => {
+      Object.values(row).forEach(val => {
+        if (val === null || val === "" || val === undefined || String(val).toLowerCase() === "nan") {
+          missingCount++;
+        }
+      });
+    });
+
+    // Calculate duplicate rows count
+    const uniqueStrings = new Set(dataset.map(item => JSON.stringify(item)));
+    const duplicateCount = dataset.length - uniqueStrings.size;
+
+    // Update DOM elements matching your HTML IDs
+    const statRows = document.getElementById("stat-rows");
+    const statCols = document.getElementById("stat-cols");
+    const statMissing = document.getElementById("stat-missing");
+    const statDuplicates = document.getElementById("stat-duplicates");
+
+    if (statRows) statRows.textContent = totalRows;
+    if (statCols) statCols.textContent = totalCols;
+    if (statMissing) statMissing.textContent = missingCount;
+    if (statDuplicates) statDuplicates.textContent = duplicateCount;
+  }
+
   // Remove Duplicates Logic
   if (removeDuplicatesBtn) {
     removeDuplicatesBtn.addEventListener("click", () => {
@@ -447,6 +480,8 @@ function setupDataCleaningControls() {
       window.currentDataset = uniqueData;
 
       renderPreviewTable(window.currentDataset);
+      updateStatsCards(window.currentDataset); // Update stats cards and reset counters!
+
       alert(`Successfully removed ${removedCount} duplicate row(s)!`);
     });
   }
@@ -473,6 +508,8 @@ function setupDataCleaningControls() {
       window.currentDataset = cleanedData;
 
       renderPreviewTable(window.currentDataset);
+      updateStatsCards(window.currentDataset); // Update stats cards and reset counters to 0!
+
       alert(`Successfully removed ${removedCount} row(s) with missing values!`);
     });
   }
@@ -511,13 +548,14 @@ function setupDataCleaningControls() {
       });
 
       renderPreviewTable(window.currentDataset);
+      updateStatsCards(window.currentDataset); // Update stats cards (missing values will become 0!)
+
       alert(
         `Successfully filled ${filledCount} missing value(s) with '${fillVal}'!`,
       );
     });
   }
 }
-
 // =========================================================================
 // SECTION 5: Table Search, Filter & Reset Logic
 // =========================================================================

@@ -1,0 +1,13 @@
+id,name,email,department,salary,join_date
+1,Ahmed Ali,ahmed@example.com,IT,4500,2023-01-15
+2,Sara Ahmed,sara@example.com,HR,,2022-11-20
+3,Mohammed Omar,mohammed@example.com,Finance,6000,2023-03-10
+4,Fatima Noor,,IT,4800,2021-05-12
+5,Ahmed Ali,ahmed@example.com,IT,4500,2023-01-15
+6,Zainab Hassan,zainab@example.com,Marketing,5200,
+7,Ali Karim,ali@example.com,Finance,,2023-02-18
+8,Fatima Noor,,IT,4800,2021-05-12
+9,Omar Youssef,omar@example.com,HR,4100,2022-07-30
+10,Layla Sami,layla@example.com,Marketing,5300,2023-04-05
+11,Sara Ahmed,sara@example.com,HR,,2022-11-20
+12,Khaled Nasser,khaled@example.com,,4900,2023-01-10
