@@ -161,7 +161,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (response.ok && result.status === "success") {
           if (statusMessage) {
             statusMessage.style.color = "#2ecc71";
-            statusMessage.textContent = `✅ ${result.message} (${result.filename})`;
+            statusMessage.textContent = ` ${result.message} (${result.filename})`;
           }
 
           // Save response dataset globally
@@ -216,13 +216,13 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           if (statusMessage) {
             statusMessage.style.color = "#e74c3c";
-            statusMessage.textContent = `❌ ${result.message || "Failed to upload file."}`;
+            statusMessage.textContent = `${result.message || "Failed to upload file."}`;
           }
         }
       } catch (error) {
         if (statusMessage) {
           statusMessage.style.color = "#e74c3c";
-          statusMessage.textContent = `❌ Error connecting to server: ${error.message}`;
+          statusMessage.textContent = ` Error connecting to server: ${error.message}`;
         }
       }
     });

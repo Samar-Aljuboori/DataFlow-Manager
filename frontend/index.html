@@ -46,14 +46,14 @@
           </div>
         </div>
 
-        <!--  Data Cleaning UI Controls) -->
+       <!-- Data Cleaning UI Controls -->
         <div
           id="cleaning-controls"
           class="cleaning-container"
           style="display: none"
         >
           <h3>Data Cleaning Options</h3>
-          <div class="cleaning-buttons">
+          <div class="cleaning-options">
             <button
               type="button"
               id="removeDuplicatesBtn"
@@ -65,7 +65,7 @@
               Remove Missing Values
             </button>
 
-            <div class="fill-missing-group">
+            <div class="fill-missing-container">
               <input
                 type="text"
                 id="fillValueInput"
@@ -78,7 +78,6 @@
             </div>
           </div>
         </div>
-
         <!--  Column Statistics UI -->
         <div
           id="stats-analysis-container"
@@ -134,24 +133,22 @@
             />
           </div>
 
-          <!-- Filter UI Controls  -->
-          <div class="filter-controls">
-            <select id="filterColumnSelect" class="cleaning-input">
-              <option value="">-- Select Column --</option>
-            </select>
-            <input
-              type="text"
-              id="filterValueInput"
-              placeholder="Value (e.g., IT)"
-              class="cleaning-input"
-            />
-            <button type="button" id="applyFilterBtn" class="btn btn-primary">
-              Filter
-            </button>
-            <button type="button" id="resetFilterBtn" class="btn btn-secondary">
-              Reset
-            </button>
+<div class="filter-controls">
+          <select id="filterColumnSelect" class="filter-select">
+            <option value="">-- Select Column --</option>
+          </select>
+          <input
+            type="text"
+            id="filterValueInput"
+            placeholder="Value (e.g., IT)"
+            class="filter-input"
+          />
+          <div class="filter-buttons-group">
+            <button type="button" id="applyFilterBtn" class="btn btn-primary">Filter</button>
+            <button type="button" id="resetFilterBtn" class="btn btn-secondary">Reset</button>
           </div>
+        </div>
+        
 
           <!-- Export UI Controls  -->
           <div class="export-controls">
