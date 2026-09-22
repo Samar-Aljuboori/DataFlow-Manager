@@ -346,30 +346,47 @@ select.cleaning-input {
   overflow-x: auto;
   margin-top: 15px;
 }
-
+/* History Table Structure and Column Alignment */
 .history-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
-  font-family: inherit;
 }
 
-.history-table th, 
+.history-table th,
 .history-table td {
-  padding: 12px 16px;
+  padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #eee;
 }
 
-.history-table th {
-  background-color: #f8fafc;
-  font-weight: 600;
-  color: #334155;
-  border-top: 1px solid #e2e8f0;
+.history-table th:last-child,
+.history-table td:last-child {
+  text-align: center;
+  width: 150px;
 }
 
-.history-table tbody tr:hover {
-  background-color: #f1f5f9;
+/* Horizontal alignment for action buttons inside the table */
+.history-table td .btn-action,
+.history-table td .btn-delete-single {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  margin: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  transition: color 0.2s ease;
+}
+
+.history-table td .btn-action:hover {
+  color: #007bff;
+}
+
+.history-table td .btn-delete-single:hover {
+  color: #dc3545;
 }
 /* =========================================================================
  * Delete Confirmation Modal & Backdrop Blur Styling
@@ -481,6 +498,7 @@ select.cleaning-input {
 }
 
 
+
 /* Show More / Show Less Button Styling */
 #toggleHistoryBtn {
   background-color: #007bff;
@@ -499,6 +517,76 @@ select.cleaning-input {
   background-color: #0056b3;
   transform: translateY(-1px);
 }
+
+
+/* Details Page */
+.details-top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.details-card {
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.details-info-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.details-info-table tr {
+  border-bottom: 1px solid #ddd;
+}
+
+.details-info-table tr:last-child {
+  border-bottom: none;
+}
+
+.details-label {
+  padding: 12px;
+  font-weight: bold;
+  color: #555;
+  width: 40%;
+}
+
+.details-value {
+  padding: 12px;
+  color: #333;
+}
+
+
+.back-home-btn, 
+a[href*="index.html"], 
+button.back-home {
+  background: linear-gradient(135deg, #4f46e5, #3b82f6);
+  color: #ffffff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.back-home-btn:hover, 
+a[href*="index.html"]:hover {
+  background: linear-gradient(135deg, #4338ca, #2563eb);
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+
+
+
 
 /* =========================================================================
    Responsive Media Queries (Mobile & Tablet Layouts)

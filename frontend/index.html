@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DataFlow Manager</title>
     <link rel="stylesheet" href="css/style.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   </head>
   <body>
@@ -13,7 +17,6 @@
         <h1>DataFlow Manager</h1>
         <p>Upload, analyze and clean your data easily.</p>
 
-        <!-- Upload Section -->
         <div class="upload-container">
           <input
             type="file"
@@ -26,9 +29,7 @@
 
         <div id="statusMessage" class="status-message"></div>
 
-        <!-- Upload History Section -->
         <div class="history-section">
-          <!-- History Section Header with Clear All Button -->
           <div
             class="history-header"
             style="
@@ -53,15 +54,13 @@
               <tr>
                 <th>File Name</th>
                 <th>Upload Date</th>
-                <th style="text-align: center; width: 80px">Action</th>
+                <th style="text-align: center; width: 140px">Action</th>
               </tr>
             </thead>
             <tbody id="historyTableBody">
-              <!-- Dynamic Rows -->
             </tbody>
           </table>
 
-          <!-- Show More / Show Less Button Container -->
           <div style="text-align: center; margin-top: 10px">
             <button
               id="toggleHistoryBtn"
@@ -73,7 +72,6 @@
           </div>
         </div>
 
-        <!-- Delete Confirmation Modal with Blurred Backdrop -->
         <div id="deleteModal" class="modal-overlay" style="display: none">
           <div class="modal-content">
             <h4 id="modalTitle">Confirm Deletion</h4>
@@ -100,7 +98,6 @@
           </div>
         </div>
 
-        <!-- Analysis Dashboard Section: Dataset Summary Cards -->
         <div id="stats-dashboard" class="stats-grid" style="display: none">
           <div class="stat-card">
             <h4>Total Rows</h4>
@@ -120,7 +117,6 @@
           </div>
         </div>
 
-        <!-- Data Cleaning UI Controls -->
         <div
           id="cleaning-controls"
           class="cleaning-container"
@@ -153,7 +149,6 @@
           </div>
         </div>
 
-        <!-- Column Statistics UI -->
         <div
           id="stats-analysis-container"
           class="cleaning-container"
@@ -191,7 +186,6 @@
           </div>
         </div>
 
-        <!-- Preview UI Section -->
         <div
           class="preview-container"
           id="previewContainer"
@@ -199,7 +193,6 @@
         >
           <h2 class="preview-title">Data Preview</h2>
 
-          <!-- Real-Time Search Bar -->
           <div class="search-container">
             <input
               type="text"
@@ -233,7 +226,6 @@
             </div>
           </div>
 
-          <!-- Export UI Controls -->
           <div class="export-controls">
             <button type="button" id="downloadCsvBtn" class="btn btn-secondary">
               Download CSV
@@ -243,7 +235,6 @@
             </button>
           </div>
 
-          <!-- Chart Section -->
           <div
             class="chart-container"
             id="chartContainer"
@@ -255,7 +246,6 @@
             </div>
           </div>
 
-          <!-- Table Wrapper -->
           <div class="table-wrapper">
             <table id="previewTable">
               <thead id="tableHeader"></thead>
@@ -265,6 +255,33 @@
         </div>
       </section>
     </main>
+
+    <div id="renameFileModal" class="modal-overlay" style="display: none">
+      <div class="modal-content">
+        <h4>Rename File</h4>
+        <p>
+          Current Name:
+          <span id="current-file-display" style="font-weight: bold"></span>
+        </p>
+        <div class="form-group" style="margin: 15px 0">
+          <input
+            type="text"
+            id="new-filename-input"
+            class="cleaning-input"
+            placeholder="Enter new name without extension"
+            style="width: 100%; padding: 8px"
+          />
+        </div>
+        <div class="modal-actions">
+          <button type="button" id="cancel-rename-btn" class="btn-modal-cancel">
+            Cancel
+          </button>
+          <button type="button" id="save-rename-btn" class="btn-modal-confirm">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
 
     <script src="js/app.js"></script>
   </body>

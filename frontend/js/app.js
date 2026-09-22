@@ -1,9 +1,11 @@
-// DataFlow Manager - Frontend Master Controller Application Script (Part 1)
+// DataFlow Manager - Frontend Master Controller Application Script
 
 // Global state tracking
 window.currentDataset = [];
 let isHistoryExpanded = false;
 let globalHistoryData = [];
+// Global reference for Chart instance to prevent rendering overlaps
+let myChartInstance = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   // =========================================================================
@@ -137,10 +139,9 @@ function calculateColumnStats(data, selectedColumn) {
 // SECTION 2: Upload History, Toggle Controls & Delete Actions
 // =========================================================================
 
-// Global variable to hold pending deletion metadata
-let pendingDeleteTarget = null; // Stores null for 'all' or filename string for 'single'
+let pendingDeleteTarget = null;
 
-// Fetch upload history list from Backend API
+// Fetch upload history list from Backend API and sync with localStorage
 async function loadUploadHistory() {
   try {
     const response = await fetch("http://127.0.0.1:8000/history");
@@ -149,7 +150,24 @@ async function loadUploadHistory() {
     }
 
     const data = await response.json();
-    globalHistoryData = data.history || [];
+    let serverHistory = data.history || [];
+
+    // Apply local renames so they don't revert on refresh or fetch
+    const renamedMap = JSON.parse(localStorage.getItem("renamedFilesMap")) || {};
+    serverHistory = serverHistory.map((item) => {
+      if (renamedMap[item.filename]) {
+        return { ...item, filename: renamedMap[item.filename] };
+      }
+      return item;
+    });
+
+    globalHistoryData = serverHistory;
+
+    // Save history to localStorage so details.html can access it properly
+    localStorage.setItem(
+      "globalHistoryData",
+      JSON.stringify(globalHistoryData),
+    );
 
     renderHistoryTable();
   } catch (error) {
@@ -165,7 +183,6 @@ function renderHistoryTable() {
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  // Handle empty history state (Updated colspan to 3 for the new action column)
   if (globalHistoryData.length === 0) {
     tbody.innerHTML = `
       <tr>
@@ -176,19 +193,23 @@ function renderHistoryTable() {
     return;
   }
 
-  // Determine items slice based on toggle state
   const itemsToDisplay = isHistoryExpanded
     ? globalHistoryData
     : globalHistoryData.slice(0, 3);
 
-  // Render rows with filename, date, and single delete action button
   itemsToDisplay.forEach((item) => {
     const row = document.createElement("tr");
     row.innerHTML = `
       <td>${item.filename}</td>
       <td>${item.upload_date}</td>
       <td style="text-align: center;">
-       <button type="button" class="btn-delete-single" data-filename="${item.filename}" title="Delete File">
+        <button type="button" class="btn-action" onclick="viewFileDetails('${item.filename}')" title="View Details">
+          <i class="fas fa-info-circle"></i>
+        </button>
+        <button type="button" class="btn-action" onclick="openRenameModal('${item.filename}')" title="Rename File">
+          <i class="fas fa-pen"></i>
+        </button>
+        <button type="button" class="btn-delete-single" data-filename="${item.filename}" title="Delete File">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -199,15 +220,6 @@ function renderHistoryTable() {
     tbody.appendChild(row);
   });
 
-  // Attach dynamic event listeners to single delete buttons
-  document.querySelectorAll(".btn-delete-single").forEach((btn) => {
-    btn.addEventListener("click", (e) => {
-      const filename = e.currentTarget.getAttribute("data-filename");
-      openDeleteModal("single", filename);
-    });
-  });
-
-  // Toggle Show More / Show Less Button display state
   if (toggleBtn) {
     if (globalHistoryData.length > 3) {
       toggleBtn.style.display = "inline-block";
@@ -215,6 +227,87 @@ function renderHistoryTable() {
     } else {
       toggleBtn.style.display = "none";
     }
+  }
+
+  // Re-attach event listeners for newly rendered single delete buttons
+  attachSingleDeleteListeners();
+}
+
+function attachSingleDeleteListeners() {
+  document.querySelectorAll(".btn-delete-single").forEach((btn) => {
+    btn.onclick = (e) => {
+      const filename = e.currentTarget.getAttribute("data-filename");
+      openDeleteModal("single", filename);
+    };
+  });
+}
+
+// Function to handle viewing file details and navigating to details page safely
+function viewFileDetails(filename) {
+  if (!filename) {
+    alert("No file specified.");
+    return;
+  }
+  
+  // Save to all possible localStorage keys to guarantee compatibility
+  localStorage.setItem("selectedFileDetail", filename);
+  localStorage.setItem("selectedFile", filename);
+  localStorage.setItem("filename", filename);
+
+  // Redirect to details page with URL parameter as well
+  window.location.href = `details.html?file=${encodeURIComponent(filename)}`;
+}
+
+// Function to open rename modal and persist changes locally
+function openRenameModal(oldFilename) {
+  const modal = document.getElementById("renameFileModal");
+  const inputField = document.getElementById("new-filename-input");
+  const currentDisplay = document.getElementById("current-file-display");
+
+  if (!modal || !inputField) return;
+
+  const lastDotIndex = oldFilename.lastIndexOf(".");
+  const extension = lastDotIndex !== -1 ? oldFilename.substring(lastDotIndex) : "";
+  const baseName = lastDotIndex !== -1 ? oldFilename.substring(0, lastDotIndex) : oldFilename;
+
+  currentDisplay.textContent = oldFilename;
+  inputField.value = baseName;
+  modal.style.display = "flex";
+
+  const saveBtn = document.getElementById("save-rename-btn");
+  const cancelBtn = document.getElementById("cancel-rename-btn");
+
+  saveBtn.onclick = function () {
+    const newBaseName = inputField.value.trim();
+    if (!newBaseName) {
+      alert("File name cannot be empty.");
+      return;
+    }
+    const updatedFilename = newBaseName + extension;
+    modal.style.display = "none";
+
+    // Update in global array and localStorage immediately so refresh keeps it
+    const fileItem = globalHistoryData.find(
+      (item) => item.filename === oldFilename
+    );
+
+    if (fileItem) {
+      fileItem.filename = updatedFilename;
+      localStorage.setItem("globalHistoryData", JSON.stringify(globalHistoryData));
+      
+      // Also save a rename map to persist across reloads if backend doesn't support it
+      let renamedMap = JSON.parse(localStorage.getItem("renamedFilesMap")) || {};
+      renamedMap[oldFilename] = updatedFilename;
+      localStorage.setItem("renamedFilesMap", JSON.stringify(renamedMap));
+
+      renderHistoryTable();
+    }
+  };
+
+  if (cancelBtn) {
+    cancelBtn.onclick = function () {
+      modal.style.display = "none";
+    };
   }
 }
 
@@ -229,7 +322,6 @@ function setupHistoryToggle() {
   }
 }
 
-// Open Delete Confirmation Modal dialog
 function openDeleteModal(type, filename = null) {
   const modal = document.getElementById("deleteModal");
   const modalMessage = document.getElementById("modalMessage");
@@ -238,7 +330,8 @@ function openDeleteModal(type, filename = null) {
 
   if (type === "all") {
     pendingDeleteTarget = { type: "all" };
-    modalMessage.textContent = "Are you sure you want to delete all upload history? This action cannot be undone.";
+    modalMessage.textContent =
+      "Are you sure you want to delete all upload history? This action cannot be undone.";
   } else if (type === "single") {
     pendingDeleteTarget = { type: "single", filename: filename };
     modalMessage.textContent = `Are you sure you want to delete "${filename}"?`;
@@ -247,7 +340,6 @@ function openDeleteModal(type, filename = null) {
   modal.style.display = "flex";
 }
 
-// Close Delete Confirmation Modal dialog
 function closeDeleteModal() {
   const modal = document.getElementById("deleteModal");
   if (modal) {
@@ -256,13 +348,11 @@ function closeDeleteModal() {
   pendingDeleteTarget = null;
 }
 
-// Event handlers for Delete Modal actions and API calls
 function setupDeleteModalEvents() {
   const clearHistoryBtn = document.getElementById("clearHistoryBtn");
   const cancelDeleteBtn = document.getElementById("cancelDeleteBtn");
   const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
 
-  // Clear All History Button trigger
   if (clearHistoryBtn) {
     clearHistoryBtn.addEventListener("click", () => {
       if (globalHistoryData.length === 0) {
@@ -273,47 +363,55 @@ function setupDeleteModalEvents() {
     });
   }
 
-  // Modal Cancel Button trigger
   if (cancelDeleteBtn) {
     cancelDeleteBtn.addEventListener("click", closeDeleteModal);
   }
 
-// Confirm Delete Handler (Connects to FastAPI API)
-if (confirmDeleteBtn) {
-  confirmDeleteBtn.addEventListener("click", async () => {
-    if (!pendingDeleteTarget) return;
+  if (confirmDeleteBtn) {
+    confirmDeleteBtn.addEventListener("click", async () => {
+      if (!pendingDeleteTarget) return;
 
-    try {
-      if (pendingDeleteTarget.type === "all") {
-        // Send DELETE request to backend
-        const response = await fetch("http://127.0.0.1:8000/history", { method: "DELETE" });
-        if (response.ok) {
-          globalHistoryData = []; // Clear local array
-          renderHistoryTable();   // Re-render table immediately
-        }
-      } else if (pendingDeleteTarget.type === "single") {
-        // Send DELETE request for a single file
-        const response = await fetch(`http://127.0.0.1:8000/history/${encodeURIComponent(pendingDeleteTarget.filename)}`, {
-          method: "DELETE",
-        });
-        if (response.ok) {
-          globalHistoryData = globalHistoryData.filter(
-            (item) => item.filename !== pendingDeleteTarget.filename
+      try {
+        if (pendingDeleteTarget.type === "all") {
+          const response = await fetch("http://127.0.0.1:8000/history", {
+            method: "DELETE",
+          });
+          if (response.ok) {
+            globalHistoryData = [];
+            localStorage.setItem(
+              "globalHistoryData",
+              JSON.stringify(globalHistoryData),
+            );
+            renderHistoryTable();
+          }
+        } else if (pendingDeleteTarget.type === "single") {
+          const response = await fetch(
+            `http://127.0.0.1:8000/history/${encodeURIComponent(pendingDeleteTarget.filename)}`,
+            {
+              method: "DELETE",
+            },
           );
-          renderHistoryTable();
+          if (response.ok) {
+            globalHistoryData = globalHistoryData.filter(
+              (item) => item.filename !== pendingDeleteTarget.filename,
+            );
+            localStorage.setItem(
+              "globalHistoryData",
+              JSON.stringify(globalHistoryData),
+            );
+            renderHistoryTable();
+          }
         }
+
+        await loadUploadHistory();
+      } catch (error) {
+        console.error("Error executing delete operation:", error);
+      } finally {
+        closeDeleteModal();
       }
-      
-      // Reload history from server to guarantee sync
-      await loadUploadHistory();
-    } catch (error) {
-      console.error("Error executing delete operation:", error);
-    } finally {
-      closeDeleteModal();
-    }
-  });
+    });
+  }
 }
-};
 // =========================================================================
 // SECTION 3: File Upload Controls Setup
 // =========================================================================
@@ -431,28 +529,29 @@ function setupDataCleaningControls() {
   const removeMissingBtn = document.getElementById("removeMissingBtn");
   const fillMissingBtn = document.getElementById("fillMissingBtn");
 
-  // Helper function to update the summary statistic cards dynamically
   function updateStatsCards(dataset) {
     if (!dataset) return;
-    
+
     const totalRows = dataset.length;
     const totalCols = dataset.length > 0 ? Object.keys(dataset[0]).length : 0;
-    
-    // Calculate missing values count
+
     let missingCount = 0;
-    dataset.forEach(row => {
-      Object.values(row).forEach(val => {
-        if (val === null || val === "" || val === undefined || String(val).toLowerCase() === "nan") {
+    dataset.forEach((row) => {
+      Object.values(row).forEach((val) => {
+        if (
+          val === null ||
+          val === "" ||
+          val === undefined ||
+          String(val).toLowerCase() === "nan"
+        ) {
           missingCount++;
         }
       });
     });
 
-    // Calculate duplicate rows count
-    const uniqueStrings = new Set(dataset.map(item => JSON.stringify(item)));
+    const uniqueStrings = new Set(dataset.map((item) => JSON.stringify(item)));
     const duplicateCount = dataset.length - uniqueStrings.size;
 
-    // Update DOM elements matching your HTML IDs
     const statRows = document.getElementById("stat-rows");
     const statCols = document.getElementById("stat-cols");
     const statMissing = document.getElementById("stat-missing");
@@ -464,7 +563,6 @@ function setupDataCleaningControls() {
     if (statDuplicates) statDuplicates.textContent = duplicateCount;
   }
 
-  // Remove Duplicates Logic
   if (removeDuplicatesBtn) {
     removeDuplicatesBtn.addEventListener("click", () => {
       if (!window.currentDataset || window.currentDataset.length === 0) {
@@ -480,13 +578,12 @@ function setupDataCleaningControls() {
       window.currentDataset = uniqueData;
 
       renderPreviewTable(window.currentDataset);
-      updateStatsCards(window.currentDataset); // Update stats cards and reset counters!
+      updateStatsCards(window.currentDataset);
 
       alert(`Successfully removed ${removedCount} duplicate row(s)!`);
     });
   }
 
-  // Remove Missing Values Logic
   if (removeMissingBtn) {
     removeMissingBtn.addEventListener("click", () => {
       if (!window.currentDataset || window.currentDataset.length === 0) {
@@ -508,13 +605,12 @@ function setupDataCleaningControls() {
       window.currentDataset = cleanedData;
 
       renderPreviewTable(window.currentDataset);
-      updateStatsCards(window.currentDataset); // Update stats cards and reset counters to 0!
+      updateStatsCards(window.currentDataset);
 
       alert(`Successfully removed ${removedCount} row(s) with missing values!`);
     });
   }
 
-  // Fill Missing Values Logic
   if (fillMissingBtn) {
     fillMissingBtn.addEventListener("click", () => {
       const fillValueInput = document.getElementById("fillValueInput");
@@ -548,7 +644,7 @@ function setupDataCleaningControls() {
       });
 
       renderPreviewTable(window.currentDataset);
-      updateStatsCards(window.currentDataset); // Update stats cards (missing values will become 0!)
+      updateStatsCards(window.currentDataset);
 
       alert(
         `Successfully filled ${filledCount} missing value(s) with '${fillVal}'!`,
@@ -556,6 +652,7 @@ function setupDataCleaningControls() {
     });
   }
 }
+
 // =========================================================================
 // SECTION 5: Table Search, Filter & Reset Logic
 // =========================================================================
@@ -567,7 +664,6 @@ function setupFilterAndResetControls() {
   const resetFilterBtn = document.getElementById("resetFilterBtn");
   const searchInput = document.getElementById("searchInput");
 
-  // Real-time Data Table Search
   if (searchInput) {
     searchInput.addEventListener("input", (e) => {
       const searchTerm = e.target.value.toLowerCase();
@@ -580,7 +676,6 @@ function setupFilterAndResetControls() {
     });
   }
 
-  // Column Specific Filter
   if (applyFilterBtn) {
     applyFilterBtn.addEventListener("click", () => {
       const selectedCol = filterColumnSelect ? filterColumnSelect.value : "";
@@ -604,7 +699,6 @@ function setupFilterAndResetControls() {
     });
   }
 
-  // Reset Filter Logic
   if (resetFilterBtn) {
     resetFilterBtn.addEventListener("click", () => {
       if (filterColumnSelect) filterColumnSelect.value = "";
@@ -618,7 +712,6 @@ function setupFilterAndResetControls() {
   }
 }
 
-// Event: Column Selection for Statistical Calculation
 function setupColumnStatsEventListener() {
   const columnSelect = document.getElementById("columnSelect");
   if (columnSelect) {
@@ -635,6 +728,7 @@ function setupColumnStatsEventListener() {
     });
   }
 }
+
 // =========================================================================
 // SECTION 6: Export Functionality (CSV & Excel)
 // =========================================================================
@@ -642,7 +736,6 @@ function setupColumnStatsEventListener() {
 const downloadCsvBtn = document.getElementById("downloadCsvBtn");
 const downloadExcelBtn = document.getElementById("downloadExcelBtn");
 
-// Helper Function: Convert JSON Array to CSV String & Download
 function downloadDatasetAsCSV(data, filename = "exported_data.csv") {
   if (!data || data.length === 0) {
     alert("No data available to export.");
@@ -652,10 +745,8 @@ function downloadDatasetAsCSV(data, filename = "exported_data.csv") {
   const headers = Object.keys(data[0]);
   const csvRows = [];
 
-  // Add Header Row
   csvRows.push(headers.join(","));
 
-  // Add Data Rows
   data.forEach((row) => {
     const values = headers.map((header) => {
       const escaped = ("" + (row[header] ?? "")).replace(/"/g, '\\"');
@@ -677,7 +768,6 @@ function downloadDatasetAsCSV(data, filename = "exported_data.csv") {
   document.body.removeChild(link);
 }
 
-// Event Listener: Download CSV
 if (downloadCsvBtn) {
   downloadCsvBtn.addEventListener("click", () => {
     if (window.currentDataset && window.currentDataset.length > 0) {
@@ -688,11 +778,9 @@ if (downloadCsvBtn) {
   });
 }
 
-// Event Listener: Download Excel
 if (downloadExcelBtn) {
   downloadExcelBtn.addEventListener("click", () => {
     if (window.currentDataset && window.currentDataset.length > 0) {
-      // Direct fallback to CSV format with .xls extension for standard compatibility
       downloadDatasetAsCSV(window.currentDataset, "DataFlow_Export.xls");
     } else {
       alert("No data available to download.");
@@ -704,14 +792,6 @@ if (downloadExcelBtn) {
 // SECTION 7: Chart.js Bar Chart Visualization
 // =========================================================================
 
-// Global reference for Chart instance to prevent rendering overlaps
-let myChartInstance = null;
-
-/**
- * Render dynamic Bar Chart based on the current dataset.
- * Automatically selects the first string column as label and first numeric column as value.
- * @param {Array<Object>} data - The dataset array of objects.
- */
 function renderBarChart(data) {
   if (!data || data.length === 0) return;
 
@@ -722,25 +802,21 @@ function renderBarChart(data) {
   const ctx = chartCanvas.getContext("2d");
   const keys = Object.keys(data[0]);
 
-  // Identify first text column for categories/labels and first numeric column for dataset values
   const labelKey = keys.find((k) => typeof data[0][k] === "string") || keys[0];
   const valueKey =
     keys.find(
-      (k) => typeof data[0][k] === "number" || !isNaN(parseFloat(data[0][k]))
+      (k) => typeof data[0][k] === "number" || !isNaN(parseFloat(data[0][k])),
     ) || keys[1];
 
   if (!labelKey || !valueKey) return;
 
-  // Extract labels and numerical values
   const labels = data.map((row) => row[labelKey]);
   const values = data.map((row) => parseFloat(row[valueKey]) || 0);
 
-  // Destroy previous Chart instance if it exists to avoid visual overlap bug
   if (myChartInstance) {
     myChartInstance.destroy();
   }
 
-  // Instantiate new Bar Chart
   myChartInstance = new Chart(ctx, {
     type: "bar",
     data: {
@@ -766,7 +842,6 @@ function renderBarChart(data) {
     },
   });
 
-  // Display chart container UI
   if (chartContainer) {
     chartContainer.style.display = "block";
   }

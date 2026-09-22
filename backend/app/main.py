@@ -1,5 +1,7 @@
 import sqlite3
 from pathlib import Path
+import pandas as pd
+import numpy as np
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.routers import upload, analysis, cleaning, statistics, export
@@ -65,10 +67,10 @@ def read_root():
         "message": "Welcome to DataFlow Manager"
     }
 
-# Upload History Retrieval Endpoint
+# Upload History Retrieval Endpoint (Calculates file stats dynamically on the fly)
 @app.get("/history")
 def get_upload_history():
-    """Retrieve all file upload history records from SQLite database."""
+    """Retrieve all file upload history records and dynamically compute file stats from disk."""
     try:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
@@ -76,7 +78,49 @@ def get_upload_history():
         rows = cursor.fetchall()
         conn.close()
         
-        return {"history": [{"filename": row[0], "upload_date": row[1]} for row in rows]}
+        history_list = []
+        for row in rows:
+            filename = row[0]
+            upload_date = row[1]
+            file_path = DATA_DIR / filename
+            
+            size_str = "N/A"
+            rows_count = 0
+            cols_count = 0
+            preview_data = []
+            
+            # Dynamically read file stats if the file exists physically
+            if file_path.exists():
+                try:
+                    size_bytes = file_path.stat().st_size
+                    size_str = f"{size_bytes / 1024:.2f} KB" if size_bytes < 1024 * 1024 else f"{size_bytes / (1024 * 1024):.2f} MB"
+                    
+                    if filename.endswith(".csv"):
+                        df = pd.read_csv(file_path)
+                    elif filename.endswith((".xls", ".xlsx")):
+                        df = pd.read_excel(file_path)
+                    else:
+                        df = pd.DataFrame()
+                    
+                    if not df.empty:
+                        df = df.dropna(how="all").dropna(how="all", axis=1)
+                        rows_count = int(df.shape[0])
+                        cols_count = int(df.shape[1])
+                        df_clean = df.head(5).replace([np.nan, np.inf, -np.inf], "").fillna("")
+                        preview_data = df_clean.to_dict(orient="records")
+                except Exception as file_err:
+                    print(f"Could not read file stats for {filename}: {file_err}")
+
+            history_list.append({
+                "filename": filename,
+                "upload_date": upload_date,
+                "size": size_str,
+                "rowsCount": rows_count,
+                "colsCount": cols_count,
+                "data": preview_data
+            })
+        
+        return {"history": history_list}
     except Exception as e:
         return {"history": [], "error": str(e)}
 

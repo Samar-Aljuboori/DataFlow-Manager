@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>File Details - DataFlow Manager</title>
+    <link rel="stylesheet" href="css/style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  </head>
+  <body>
+    <main class="container">
+      <section class="hero">
+        <div class="details-top-bar">
+          <h1>File Details</h1>
+          <a href="index.html" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Home
+          </a>
+        </div>
+
+        <div class="cleaning-container details-card">
+          <table class="details-info-table">
+            <tr>
+              <td class="details-label">File Name</td>
+              <td id="detail-filename" class="details-value">-</td>
+            </tr>
+            <tr>
+              <td class="details-label">Upload Date</td>
+              <td id="detail-date" class="details-value">-</td>
+            </tr>
+            <tr>
+              <td class="details-label">File Type</td>
+              <td id="detail-type" class="details-value">-</td>
+            </tr>
+            <tr>
+              <td class="details-label">File Size</td>
+              <td id="detail-size" class="details-value">-</td>
+            </tr>
+            <tr>
+              <td class="details-label">Number of Rows</td>
+              <td id="detail-rows" class="details-value">-</td>
+            </tr>
+            <tr>
+              <td class="details-label">Number of Columns</td>
+              <td id="detail-cols" class="details-value">-</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="preview-container" id="previewContainer">
+          <h2 class="preview-title">Data Preview</h2>
+          <div class="table-wrapper">
+            <table id="previewTable">
+              <thead id="tableHeader"></thead>
+              <tbody id="tableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="js/details.js"></script>
+  </body>
+</html>
