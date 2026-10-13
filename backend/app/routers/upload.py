@@ -15,17 +15,24 @@ DATA_DIR = BASE_DIR / "data"
 DB_FILE = BASE_DIR / "dataflow.db"
 
 def find_smart_header(df_raw: pd.DataFrame) -> pd.DataFrame:
-    """Dynamically locates the first non-empty header row in any dataset."""
-    first_valid_row_idx = df_raw.dropna(how="all").index[0]
-    
-    if any(str(col).startswith("Unnamed") for col in df_raw.columns):
-        new_header = df_raw.iloc[first_valid_row_idx]
-        df_cleaned = df_raw.iloc[first_valid_row_idx + 1:].copy()
-        df_cleaned.columns = new_header
-        return df_cleaned.reset_index(drop=True)
-    
-    return df_raw
-
+    """Dynamically locates the first non-empty header row in any dataset safely."""
+    try:
+        valid_rows = df_raw.dropna(how="all")
+        if valid_rows.empty:
+            return df_raw
+            
+        first_valid_row_idx = valid_rows.index[0]
+        
+        if any(str(col).startswith("Unnamed") for col in df_raw.columns):
+            if first_valid_row_idx < len(df_raw) - 1:
+                new_header = df_raw.iloc[first_valid_row_idx]
+                df_cleaned = df_raw.iloc[first_valid_row_idx + 1:].copy()
+                df_cleaned.columns = new_header
+                return df_cleaned.reset_index(drop=True)
+        
+        return df_raw
+    except Exception:
+        return df_raw
 @router.post("/upload")
 def upload_file(file: UploadFile = File(...)):
     """Upload dataset, clean headers, log metadata to SQLite, and return preview."""

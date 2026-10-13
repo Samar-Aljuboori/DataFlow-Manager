@@ -24,12 +24,12 @@ body {
 /* Container Structure & Soft Card Layout */
 .container {
   width: 100%;
-  max-width: 1100px;
-  margin: 0 auto;
-  background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  padding: 25px;
+  max-width: 95%;
+  margin: 40px auto 0 auto;
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 40px;
 }
 
 /* Typography & Section Titles */

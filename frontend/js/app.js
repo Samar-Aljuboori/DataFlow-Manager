@@ -386,7 +386,7 @@ function setupDeleteModalEvents() {
           }
         } else if (pendingDeleteTarget.type === "single") {
           const response = await fetch(
-            `http://127.0.0.1:8000/history/${encodeURIComponent(pendingDeleteTarget.filename)}`,
+            `http://127.0.0.1:8000/history/single?filename=${encodeURIComponent(pendingDeleteTarget.filename)}`,
             {
               method: "DELETE",
             },
@@ -419,6 +419,10 @@ function setupDeleteModalEvents() {
 function setupFileUpload() {
   const uploadBtn = document.getElementById("uploadBtn");
   const fileInput = document.getElementById("fileInput");
+  
+  console.log(" Check uploadBtn:", uploadBtn);
+  console.log(" Check fileInput:", fileInput);
+
   const statusMessage = document.getElementById("statusMessage");
 
   if (uploadBtn && fileInput) {
@@ -430,8 +434,8 @@ function setupFileUpload() {
   }
 
   if (fileInput) {
-    fileInput.addEventListener("change", async (e) => {
-      e.preventDefault();
+  fileInput.addEventListener("change", async (e) => {
+  e.preventDefault();
 
       const file = e.target.files[0];
       if (!file) return;
@@ -511,6 +515,7 @@ function setupFileUpload() {
           }
         }
       } catch (error) {
+        console.error("Upload Error Details:", error);
         if (statusMessage) {
           statusMessage.style.color = "#e74c3c";
           statusMessage.textContent = ` Error connecting to server: ${error.message}`;
@@ -519,7 +524,6 @@ function setupFileUpload() {
     });
   }
 }
-
 // =========================================================================
 // SECTION 4: Data Cleaning Controls Logic
 // =========================================================================

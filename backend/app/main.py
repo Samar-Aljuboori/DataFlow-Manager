@@ -145,10 +145,10 @@ def clear_all_history():
             detail=f"An error occurred while clearing history: {str(e)}"
         )
 
-# Delete Single File from History Endpoint
-@app.delete("/history/{filename}", status_code=status.HTTP_200_OK)
+# Delete Single File from History Endpoint (Using Query Parameter to avoid dot issues)
+@app.delete("/history/single", status_code=status.HTTP_200_OK)
 def delete_single_file(filename: str):
-    """Delete a specific file record from the upload history table by filename."""
+    """Delete a specific file record from the upload history table and physical disk by filename."""
     try:
         conn = sqlite3.connect(DB_FILE)
         cursor = conn.cursor()
@@ -163,9 +163,15 @@ def delete_single_file(filename: str):
                 detail=f"File '{filename}' not found in upload history."
             )
 
+        # Delete from SQLite database
         cursor.execute("DELETE FROM upload_history WHERE filename = ?", (filename,))
         conn.commit()
         conn.close()
+
+        # Delete physical file from 'data' folder if it exists
+        file_path = DATA_DIR / filename
+        if file_path.exists():
+            file_path.unlink()
 
         return {
             "status": "success",
@@ -179,6 +185,7 @@ def delete_single_file(filename: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred while deleting file '{filename}': {str(e)}"
         )
+
 
 if __name__ == "__main__":
     import uvicorn
